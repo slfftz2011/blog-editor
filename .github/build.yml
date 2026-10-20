@@ -1,9 +1,9 @@
 name: Build APK
 on:
   push:
-    tag: 
+    tags: 
       - 'v*'
-      - 'dev-*'
+      - 'dev-v*'
   workflow_dispatch:
 
 jobs:
