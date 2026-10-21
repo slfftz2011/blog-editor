@@ -8,7 +8,7 @@
         android:allowBackup="true"
         android:label="BlogEditor"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@style/Theme.BlogEditor">
 
         <activity
             android:name=".MainActivity"
