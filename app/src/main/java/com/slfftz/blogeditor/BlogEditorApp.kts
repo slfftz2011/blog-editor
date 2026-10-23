@@ -13,7 +13,7 @@ class BlogEditorApp : Application() {
             runCatching {
                 val sw = StringWriter()
                 e.printStackTrace(PrintWriter(sw))
-                val dir = getExternalFilesDir("crash") ?: filesDir
+                val dir = File(filesDir, "crash").apply { mkdirs() }
                 File(dir, "last_crash.txt").writeText(
                     "Thread: ${t.name}\n\n${sw}"
                 )
