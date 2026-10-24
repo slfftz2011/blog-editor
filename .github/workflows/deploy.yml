@@ -2,7 +2,7 @@ name: Deploy Blog Editor
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
