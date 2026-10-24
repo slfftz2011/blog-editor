@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { RepoConfig, FileItem } from '../types'
 import { listMdFiles } from '../lib/github'
-import React from 'react'
 
 interface Props {
   config: RepoConfig
   onOpenSettings: () => void
-  onOpenFile: (path: string) => void
+  onOpenFile: (path: string, isNew?: boolean) => void
 }
 
 export default function FileListPage({ config, onOpenSettings, onOpenFile }: Props) {
@@ -27,30 +26,21 @@ export default function FileListPage({ config, onOpenSettings, onOpenFile }: Pro
     }
   }, [config])
 
+  function handleNew() {
+    const name = window.prompt('文件名（不含 .md 扩展名）')
+    if (!name?.trim()) return
+    const safe = name.trim().replace(/[^a-zA-Z0-9_\u4e00-\u9fa5-]/g, '-')
+    onOpenFile(`${config.postsPath.replace(/\/+$/, '')}/${safe}.md`, true)
+  }
+
   return (
     <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8 }}>
         <h1 style={{ fontSize: 24, margin: 0 }}>文章列表</h1>
-        <button
-          onClick={onOpenSettings}
-          style={{
-            padding: '8px 12px',
-            background: '#f0f0f0',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 14,
-            cursor: 'pointer',
-          }}
-        >
-          设置
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleNew} style={btn('#43a047')}>新建</button>
+          <button onClick={onOpenSettings} style={btn('#f0f0f0', '#333')}>设置</button>
+        </div>
       </div>
 
       <p style={{ color: '#666', fontSize: 13, marginBottom: 12 }}>
@@ -60,15 +50,7 @@ export default function FileListPage({ config, onOpenSettings, onOpenFile }: Pro
       {loading && <p>加载中…</p>}
 
       {error && (
-        <div
-          style={{
-            padding: 12,
-            borderRadius: 8,
-            background: '#ffebee',
-            color: '#c62828',
-            fontSize: 14,
-          }}
-        >
+        <div style={{ padding: 12, borderRadius: 8, background: '#ffebee', color: '#c62828', fontSize: 14 }}>
           {error}
         </div>
       )}
@@ -99,4 +81,16 @@ export default function FileListPage({ config, onOpenSettings, onOpenFile }: Pro
       ))}
     </div>
   )
+}
+
+function btn(bg: string, color = '#fff'): React.CSSProperties {
+  return {
+    padding: '8px 12px',
+    background: bg,
+    color,
+    border: 'none',
+    borderRadius: 8,
+    fontSize: 14,
+    cursor: 'pointer',
+  }
 }

@@ -87,3 +87,23 @@ export async function writeFile(
   })
   await handle(res)
 }
+
+export async function uploadBinaryFile(
+  cfg: RepoConfig,
+  path: string,
+  base64Content: string,
+  message: string,
+): Promise<void> {
+  const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}`
+  const body = {
+    message,
+    content: base64Content,
+    branch: cfg.branch,
+  }
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  await handle(res)
+}

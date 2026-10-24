@@ -3,9 +3,12 @@ import { loadConfig } from './lib/storage'
 import type { RepoConfig } from './types'
 import SettingsPage from './pages/SettingsPage'
 import FileListPage from './pages/FileListPage'
-import React from 'react'
+import EditorPage from './pages/EditorPage'
 
-type Page = { name: 'settings' } | { name: 'files' }
+type Page =
+  | { name: 'settings' }
+  | { name: 'files' }
+  | { name: 'editor'; path: string; isNew: boolean }
 
 export default function App() {
   const [initial] = useState<RepoConfig | null>(() => {
@@ -16,6 +19,7 @@ export default function App() {
   const [page, setPage] = useState<Page>(
     initial ? { name: 'files' } : { name: 'settings' },
   )
+  const [refreshKey, setRefreshKey] = useState(0)
 
   if (!config || page.name === 'settings') {
     return (
@@ -30,11 +34,26 @@ export default function App() {
     )
   }
 
+  if (page.name === 'editor') {
+    return (
+      <EditorPage
+        config={config}
+        path={page.path}
+        isNew={page.isNew}
+        onBack={() => setPage({ name: 'files' })}
+        onSaved={() => setRefreshKey(k => k + 1)}
+      />
+    )
+  }
+
   return (
     <FileListPage
+      key={refreshKey}
       config={config}
       onOpenSettings={() => setPage({ name: 'settings' })}
-      onOpenFile={path => alert(`编辑：${path}\n（下一批实现编辑器）`)}
+      onOpenFile={(path, isNew = false) =>
+        setPage({ name: 'editor', path, isNew })
+      }
     />
   )
 }
