@@ -1,17 +1,29 @@
 import { useEffect, useState } from 'react'
 import type { RepoConfig, FileItem } from '../types'
 import { listMdFiles } from '../lib/github'
+import { listDrafts } from '../lib/draft'
 
 interface Props {
   config: RepoConfig
   onOpenSettings: () => void
+  onOpenDrafts: () => void
   onOpenFile: (path: string, isNew?: boolean) => void
 }
 
-export default function FileListPage({ config, onOpenSettings, onOpenFile }: Props) {
+export default function FileListPage({
+  config,
+  onOpenSettings,
+  onOpenDrafts,
+  onOpenFile,
+}: Props) {
   const [files, setFiles] = useState<FileItem[]>([])
+  const [draftCount, setDraftCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDraftCount(listDrafts().length)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -35,10 +47,21 @@ export default function FileListPage({ config, onOpenSettings, onOpenFile }: Pro
 
   return (
     <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 12,
+          gap: 8,
+        }}
+      >
         <h1 style={{ fontSize: 24, margin: 0 }}>文章列表</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={handleNew} style={btn('#43a047')}>新建</button>
+          <button onClick={onOpenDrafts} style={btn('#fb8c00')}>
+            草稿箱{draftCount > 0 ? ` (${draftCount})` : ''}
+          </button>
           <button onClick={onOpenSettings} style={btn('#f0f0f0', '#333')}>设置</button>
         </div>
       </div>
@@ -50,7 +73,15 @@ export default function FileListPage({ config, onOpenSettings, onOpenFile }: Pro
       {loading && <p>加载中…</p>}
 
       {error && (
-        <div style={{ padding: 12, borderRadius: 8, background: '#ffebee', color: '#c62828', fontSize: 14 }}>
+        <div
+          style={{
+            padding: 12,
+            borderRadius: 8,
+            background: '#ffebee',
+            color: '#c62828',
+            fontSize: 14,
+          }}
+        >
           {error}
         </div>
       )}
