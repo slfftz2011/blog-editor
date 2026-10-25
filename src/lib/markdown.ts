@@ -1,6 +1,5 @@
 import MarkdownIt from 'markdown-it'
 import type Token from 'markdown-it/lib/token.mjs'
-import type { Renderer } from 'markdown-it'
 import type { RepoConfig } from '../types'
 
 export function createMarkdown(cfg: RepoConfig): MarkdownIt {
@@ -16,17 +15,17 @@ export function createMarkdown(cfg: RepoConfig): MarkdownIt {
   const rawBase = `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${cfg.branch}/`
   const pagesBase = cfg.pagesBaseUrl.trim().replace(/\/+$/, '')
 
-  const defaultImage: Renderer.RenderRule =
+  const defaultImage =
     md.renderer.rules.image ??
-    ((tokens, idx, options, _env, self) =>
+    ((tokens: Token[], idx: number, options: any, _env: any, self: any) =>
       self.renderToken(tokens, idx, options))
 
   md.renderer.rules.image = (
     tokens: Token[],
     idx: number,
-    options: MarkdownIt.Options,
+    options: any,
     env: any,
-    self: Renderer,
+    self: any,
   ) => {
     const token = tokens[idx]
     const src = token.attrGet('src') ?? ''
