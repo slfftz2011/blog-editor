@@ -37,7 +37,7 @@ jobs:
 
       - name: Build web app
         run: npm run build
-        
+
       - name: Add Capacitor Android platform
         run: npx cap add android
 
@@ -51,7 +51,7 @@ jobs:
       - name: Build Signed Release APK
         working-directory: ./android
         env:
-          KEYSTORE_PATH: release.jks
+          KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
