@@ -10,6 +10,7 @@ export const defaultConfig: RepoConfig = {
   postsPath: 'source/_posts',
   imageDir: 'source/images',
   imageUrlPrefix: '/images',
+  pagesBaseUrl: '',
 }
 
 export function loadConfig(): RepoConfig {

@@ -238,7 +238,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
             onReady={api => (editorApi.current = api)}
           />
         )}
-        {mode === 'preview' && <MarkdownPreview content={content} />}
+        {mode === 'preview' && <MarkdownPreview config={config} content={content} />}
         {mode === 'split' && (
           <div className="split-container" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
             <div style={{ flex: 1, minHeight: 0, minWidth: 0, borderBottom: '1px solid #e0e0e0' }}>
@@ -249,7 +249,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
               />
             </div>
             <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-              <MarkdownPreview content={content} />
+              <MarkdownPreview config={config} content={content} />
             </div>
           </div>
         )}

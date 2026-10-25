@@ -54,6 +54,14 @@ export default function SettingsPage({ initial, onSaved, onCancel }: Props) {
       <Field label="文章目录" value={cfg.postsPath} onChange={v => set('postsPath', v)} />
       <Field label="图片目录" value={cfg.imageDir} onChange={v => set('imageDir', v)} />
       <Field label="图片 URL 前缀" value={cfg.imageUrlPrefix} onChange={v => set('imageUrlPrefix', v)} />
+      <Field
+        label="Pages 地址（可选，留空则直接用 raw）"
+        value={cfg.pagesBaseUrl}
+        onChange={v => set('pagesBaseUrl', v)}
+      />
+      <p style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 12 }}>
+        格式：https://用户名.github.io/仓库名，如 https://slfftz2011.github.io/blog
+      </p>
 
       {result && (
         <div
