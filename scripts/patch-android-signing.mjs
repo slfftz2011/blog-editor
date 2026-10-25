@@ -8,8 +8,30 @@ const tag = process.env.GITHUB_REF_NAME ?? ''
 const versionName = tag.replace(/^v/, '') || pkg.version || '0.1.0'
 // versionCode 需要单调递增，这里用 major*10000 + minor*100 + patch 简化为整数
 function toCode(v) {
-  const [maj = 0, min = 0, pat = 0] = v.split('.').map(n => parseInt(n, 10) || 0)
-  return maj * 10000 + min * 100 + pat
+  const m = v.match(/^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc|pre)\.?(\d+)?)?$/i)
+  if (!m) {
+    return Math.floor(Date.now() / 1000)
+  }
+
+  const base =
+    parseInt(m[1], 10) * 10000 +
+    parseInt(m[2], 10) * 100 +
+    parseInt(m[3], 10)
+
+  const stage = (m[4] || '').toLowerCase()
+  const n = parseInt(m[5] || '1', 10)
+
+  let suffix
+  switch (stage) {
+    case '':      suffix = 999; break       // 正式版
+    case 'pre':   suffix = 750 + n; break   // pre.1 → 751
+    case 'rc':    suffix = 500 + n; break   // rc.1  → 501
+    case 'beta':  suffix = 250 + n; break   // beta.1 → 251
+    case 'alpha': suffix = 1 + n; break     // alpha.1 → 2
+    default:      suffix = 999; break
+  }
+
+  return base * 1000 + suffix
 }
 const versionCode = toCode(versionName)
 

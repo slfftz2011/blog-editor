@@ -5,6 +5,8 @@ import SettingsPage from './pages/SettingsPage'
 import FileListPage from './pages/FileListPage'
 import EditorPage from './pages/EditorPage'
 import DraftsPage from './pages/DraftsPage'
+import HelpPage from './pages/HelpPage'
+import AboutPage from './pages/AboutPage'
 
 type BackTo = 'files' | 'drafts'
 
@@ -12,6 +14,8 @@ type Page =
   | { name: 'settings' }
   | { name: 'files' }
   | { name: 'drafts' }
+  | { name: 'help' }
+  | { name: 'about' }
   | { name: 'editor'; path: string; isNew: boolean; backTo: BackTo }
 
 export default function App() {
@@ -30,11 +34,8 @@ export default function App() {
   }
 
   function backFromEditor(backTo: BackTo) {
-    if (backTo === 'files') {
-      setPage({ name: 'files' })
-    } else {
-      setPage({ name: 'drafts' })
-    }
+    if (backTo === 'files') setPage({ name: 'files' })
+    else setPage({ name: 'drafts' })
     setRefreshKey(k => k + 1)
   }
 
@@ -72,12 +73,22 @@ export default function App() {
     )
   }
 
+  if (page.name === 'help') {
+    return <HelpPage onBack={() => setPage({ name: 'files' })} />
+  }
+
+  if (page.name === 'about') {
+    return <AboutPage onBack={() => setPage({ name: 'files' })} />
+  }
+
   return (
     <FileListPage
       key={refreshKey}
       config={config}
       onOpenSettings={() => setPage({ name: 'settings' })}
       onOpenDrafts={() => setPage({ name: 'drafts' })}
+      onOpenHelp={() => setPage({ name: 'help' })}
+      onOpenAbout={() => setPage({ name: 'about' })}
       onOpenFile={(path, isNew = false) => openEditor(path, isNew, 'files')}
     />
   )
