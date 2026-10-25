@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^6.2.0",
+    "@capacitor/browser": "^6.2.0",
     "@capacitor/camera": "^6.1.2",
     "@capacitor/core": "^6.2.0",
     "@codemirror/lang-markdown": "^6.3.1",

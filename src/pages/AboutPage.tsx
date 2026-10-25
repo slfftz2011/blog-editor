@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { openExternal } from '../lib/external'
 import { checkUpdate, UpdateInfo } from '../lib/updater'
 
 interface Props {
@@ -50,22 +51,21 @@ export default function AboutPage({ onBack }: Props) {
           <button onClick={handleCheck} disabled={checking} style={btn('#1976d2')}>
             {checking ? '检查中…' : '检查更新'}
           </button>
-          <a
-            href="https://github.com/slfftz2011/blog-editor"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ ...btn('#f0f0f0', '#333'), textDecoration: 'none', display: 'inline-block' }}
+          // 源代码
+          <button
+            onClick={() => openExternal('https://github.com/slfftz2011/blog-editor')}
+            style={btn('#f0f0f0', '#333')}
           >
             源代码
-          </a>
-          <a
-            href="https://github.com/slfftz2011/blog-editor/releases"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ ...btn('#f0f0f0', '#333'), textDecoration: 'none', display: 'inline-block' }}
+          </button>
+
+          // 版本历史
+          <button
+            onClick={() => openExternal('https://github.com/slfftz2011/blog-editor/releases')}
+            style={btn('#f0f0f0', '#333')}
           >
             版本历史
-          </a>
+          </button>
         </div>
 
         {message && (
@@ -104,23 +104,23 @@ export default function AboutPage({ onBack }: Props) {
               </pre>
             )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {update.apkUrl && (
-                <a
-                  href={update.apkUrl}
-                  style={{ ...btn('#43a047'), textDecoration: 'none', display: 'inline-block' }}
-                  download
-                >
-                  下载 APK
-                </a>
-              )}
-              <a
-                href={update.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ...btn('#f0f0f0', '#333'), textDecoration: 'none', display: 'inline-block' }}
+            // 下载 APK（在更新卡片里）
+            {update.apkUrl && (
+              <button
+                onClick={() => openExternal(update.apkUrl!)}
+                style={btn('#43a047')}
               >
-                查看 Release
-              </a>
+                下载 APK
+              </button>
+            )}
+
+            // 查看 Release（在更新卡片里）
+            <button
+              onClick={() => openExternal(update.url)}
+              style={btn('#f0f0f0', '#333')}
+            >
+              查看 Release
+            </button>
             </div>
           </div>
         )}

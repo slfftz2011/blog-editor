@@ -2,7 +2,6 @@ import { useState } from 'react'
 import type { RepoConfig } from '../types'
 import { saveConfig, defaultConfig } from '../lib/storage'
 import { testConnection } from '../lib/github'
-import React from 'react'
 
 interface Props {
   initial: RepoConfig | null
@@ -41,31 +40,25 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-      }}
-    >
-      <h1 style={{ fontSize: 24, margin: 0 }}>仓库配置</h1>
-      <button
-        onClick={() => onHelp?.()}
+    <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
+      <div
         style={{
-          padding: '6px 12px',
-          background: '#f0f0f0',
-          border: 'none',
-          borderRadius: 6,
-          fontSize: 13,
-          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 12,
         }}
       >
-        📖 使用教程
-      </button>
+        <h1 style={{ fontSize: 24, margin: 0 }}>仓库配置</h1>
+        <button onClick={() => onHelp?.()} style={btn('#f0f0f0', '#333')}>
+          📖 使用教程
+        </button>
+      </div>
+
       <p style={{ color: '#666', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
         PAT 仅保存在本机浏览器 localStorage，建议使用 fine-grained token，
-        只授权 blog 仓库的 Contents: Read and write 权限。
+        只授权博客仓库的 Contents: Read and write 权限。
       </p>
 
       <Field label="Owner" value={cfg.owner} onChange={v => set('owner', v)} />
@@ -93,6 +86,7 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
             background: result.ok ? '#e8f5e9' : '#ffebee',
             color: result.ok ? '#2e7d32' : '#c62828',
             fontSize: 14,
+            wordBreak: 'break-word',
           }}
         >
           {result.msg}
@@ -111,8 +105,16 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
 }
 
 function Field({
-  label, value, onChange, type = 'text',
-}: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+  label,
+  value,
+  onChange,
+  type = 'text',
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  type?: string
+}) {
   return (
     <div style={{ marginBottom: 12 }}>
       <label style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>
@@ -135,14 +137,14 @@ function Field({
   )
 }
 
-function btn(bg: string): React.CSSProperties {
+function btn(bg: string, color = '#fff'): React.CSSProperties {
   return {
     padding: '10px 16px',
     background: bg,
-    color: '#fff',
+    color,
     border: 'none',
     borderRadius: 8,
-    fontSize: 15,
+    fontSize: 14,
     cursor: 'pointer',
   }
 }
