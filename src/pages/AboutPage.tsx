@@ -51,7 +51,6 @@ export default function AboutPage({ onBack }: Props) {
           <button onClick={handleCheck} disabled={checking} style={btn('#1976d2')}>
             {checking ? '检查中…' : '检查更新'}
           </button>
-          // 源代码
           <button
             onClick={() => openExternal('https://github.com/slfftz2011/blog-editor')}
             style={btn('#f0f0f0', '#333')}
@@ -59,7 +58,6 @@ export default function AboutPage({ onBack }: Props) {
             源代码
           </button>
 
-          // 版本历史
           <button
             onClick={() => openExternal('https://github.com/slfftz2011/blog-editor/releases')}
             style={btn('#f0f0f0', '#333')}
@@ -104,7 +102,6 @@ export default function AboutPage({ onBack }: Props) {
               </pre>
             )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            // 下载 APK（在更新卡片里）
             {update.apkUrl && (
               <button
                 onClick={() => openExternal(update.apkUrl!)}
@@ -114,7 +111,6 @@ export default function AboutPage({ onBack }: Props) {
               </button>
             )}
 
-            // 查看 Release（在更新卡片里）
             <button
               onClick={() => openExternal(update.url)}
               style={btn('#f0f0f0', '#333')}
