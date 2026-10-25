@@ -3,3 +3,5 @@ dist/
 android/  
 .DS_Store
 *.local
+keystore.b64
+blogeditor-release.jks

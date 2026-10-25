@@ -41,6 +41,33 @@ jobs:
       - name: Add Capacitor Android platform
         run: npx cap add android
 
+      - name: Add Capacitor Android platform
+        run: npx cap add android
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.jks
+
+      - name: Patch Android signing & version
+        run: node scripts/patch-android-signing.mjs
+
+      - name: Build Signed Release APK
+        working-directory: ./android
+        env:
+          KEYSTORE_PATH: release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Rename APK
+        run: |
+          mkdir -p release
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             release/BlogEditor-${{ github.ref_name }}.apk
+
       - name: Build Debug APK
         working-directory: ./android
         run: |
