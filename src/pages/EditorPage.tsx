@@ -122,11 +122,16 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
 
   async function handleInsertImage(source: 'camera' | 'gallery') {
     setError(null)
-    const base64 = await pickImage(source)
-    if (!base64) return
     setUploading(true)
     try {
-      const fileName = `img_${Date.now()}.jpg`
+      const base64 = await pickImage(source)
+      if (!base64) {
+        setUploading(false)
+        return
+      }
+      const fileName = `img_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 8)}.jpg`
       const imagePath = `${config.imageDir.replace(/\/+$/, '')}/${fileName}`
       await uploadBinaryFile(config, imagePath, base64, `upload image: ${fileName}`)
       const markdown = `![image](${config.imageUrlPrefix.replace(/\/+$/, '')}/${fileName})`
@@ -170,10 +175,18 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         <span style={{ flex: 1, fontSize: 13, color: '#666', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {path}
         </span>
-        <button onClick={() => handleInsertImage('camera')} disabled={uploading} style={btn('#8e24aa')}>
-          {uploading ? '上传中…' : '拍照'}
+        <button
+          onClick={() => handleInsertImage('camera')}
+          disabled={uploading}
+          style={btn('#8e24aa')}
+        >
+          {uploading ? '处理中…' : '拍照'}
         </button>
-        <button onClick={() => handleInsertImage('gallery')} disabled={uploading} style={btn('#8e24aa')}>
+        <button
+          onClick={() => handleInsertImage('gallery')}
+          disabled={uploading}
+          style={btn('#8e24aa')}
+        >
           相册
         </button>
         <button onClick={handleSave} disabled={saving} style={btn('#43a047')}>
