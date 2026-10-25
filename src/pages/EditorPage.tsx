@@ -3,8 +3,10 @@ import type { RepoConfig } from '../types'
 import { readFile, writeFile, uploadBinaryFile } from '../lib/github'
 import { pickImage } from '../lib/camera'
 import { saveDraft, loadDraft, clearDraft } from '../lib/draft'
+import { useToast } from '../lib/toast'
 import MarkdownEditor, { EditorApi } from '../components/MarkdownEditor'
 import MarkdownPreview from '../components/MarkdownPreview'
+import EditorToolbar from '../components/EditorToolbar'
 
 interface Props {
   config: RepoConfig
@@ -25,6 +27,7 @@ function formatNow(): string {
 const NEW_TEMPLATE = `---\ntitle: 新文章\ndate: ${formatNow()}\ntags:\n---\n\n`
 
 export default function EditorPage({ config, path, isNew, onBack, onSaved }: Props) {
+  const toast = useToast()
   const [content, setContent] = useState(isNew ? NEW_TEMPLATE : '')
   const [sha, setSha] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(!isNew)
@@ -41,7 +44,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const contentRef = useRef(content)
   contentRef.current = content
 
-  // 加载远端内容 + 检查草稿
   useEffect(() => {
     if (isNew) {
       const draft = loadDraft(path)
@@ -70,7 +72,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     }
   }, [config, path, isNew])
 
-  // 防抖暂存：内容变化后 800ms 写入
   useEffect(() => {
     if (loading) return
     if (baselineRef.current === null) return
@@ -82,7 +83,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     return () => clearTimeout(t)
   }, [content, path, isNew, loading])
 
-  // 切后台 / 关闭页面时立即暂存
   useEffect(() => {
     function flush() {
       if (baselineRef.current !== null && contentRef.current !== baselineRef.current) {
@@ -112,9 +112,11 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
       clearDraft(path)
       setDraftSavedAt(null)
       setSavedAt(Date.now())
+      toast.show('已提交到 GitHub', 'success')
       onSaved()
     } catch (e: any) {
       setError(e.message)
+      toast.show(`保存失败：${e.message}`, 'error')
     } finally {
       setSaving(false)
     }
@@ -129,16 +131,16 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         setUploading(false)
         return
       }
-      const fileName = `img_${Date.now()}_${Math.random()
-        .toString(36)
-        .slice(2, 8)}.jpg`
+      const fileName = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
       const imagePath = `${config.imageDir.replace(/\/+$/, '')}/${fileName}`
       await uploadBinaryFile(config, imagePath, base64, `upload image: ${fileName}`)
       const markdown = `![image](${config.imageUrlPrefix.replace(/\/+$/, '')}/${fileName})`
       editorApi.current?.insert(markdown)
       editorApi.current?.focus()
+      toast.show('图片已上传并插入', 'success')
     } catch (e: any) {
       setError(`图片上传失败：${e.message}`)
+      toast.show(`图片上传失败：${e.message}`, 'error')
     } finally {
       setUploading(false)
     }
@@ -148,6 +150,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     if (!draftPrompt) return
     setContent(draftPrompt.content)
     setDraftPrompt(null)
+    toast.show('已恢复草稿', 'info')
   }
 
   function discardDraft() {
@@ -155,9 +158,13 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     clearDraft(path)
     setDraftPrompt(null)
     setDraftSavedAt(null)
+    toast.show('已丢弃草稿', 'info')
   }
 
   if (loading) return <div style={{ padding: 16 }}>加载中…</div>
+
+  // PE 区分：编辑/分屏显示工具栏，预览隐藏
+  const showToolbar = mode !== 'preview'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -172,7 +179,17 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         }}
       >
         <button onClick={onBack} style={btn('#757575')}>返回</button>
-        <span style={{ flex: 1, fontSize: 13, color: '#666', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span
+          style={{
+            flex: 1,
+            fontSize: 13,
+            color: '#666',
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {path}
         </span>
         <button
@@ -214,7 +231,16 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 4, padding: '8px 12px', borderBottom: '1px solid #e0e0e0', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          padding: '8px 12px',
+          borderBottom: '1px solid #e0e0e0',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
         <ModeBtn active={mode === 'edit'} onClick={() => setMode('edit')}>编辑</ModeBtn>
         <ModeBtn active={mode === 'preview'} onClick={() => setMode('preview')}>预览</ModeBtn>
         <ModeBtn active={mode === 'split'} onClick={() => setMode('split')}>分屏</ModeBtn>
@@ -223,6 +249,8 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
           <span style={{ marginLeft: 8, fontSize: 12, color: '#9e9e9e' }}>草稿已暂存</span>
         )}
       </div>
+
+      {showToolbar && <EditorToolbar api={() => editorApi.current} />}
 
       {error && (
         <div style={{ padding: 12, background: '#ffebee', color: '#c62828', fontSize: 13 }}>
@@ -260,6 +288,8 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         @media (orientation: landscape) {
           .split-container { flex-direction: row !important; }
         }
+        .math-block { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
+        .katex-display { margin: 8px 0; }
       `}</style>
     </div>
   )

@@ -11,6 +11,7 @@ interface Props {
 
 export interface EditorApi {
   insert: (text: string) => void
+  wrap: (prefix: string, suffix: string, placeholder: string) => void
   focus: () => void
 }
 
@@ -46,6 +47,19 @@ export default function MarkdownEditor({ value, onChange, onReady }: Props) {
     viewRef.current = view
     onReady?.({
       insert: text => view.dispatch(view.state.replaceSelection(text)),
+      wrap: (prefix, suffix, placeholder) => {
+        const { from, to } = view.state.selection.main
+        const selected = view.state.sliceDoc(from, to)
+        const text = selected || placeholder
+        const insert = prefix + text + suffix
+        view.dispatch({
+          changes: { from, to, insert },
+          selection: {
+            anchor: from + prefix.length,
+            head: from + prefix.length + text.length,
+          },
+        })
+      },
       focus: () => view.focus(),
     })
     return () => {

@@ -14,7 +14,7 @@ type Page =
   | { name: 'settings' }
   | { name: 'files' }
   | { name: 'drafts' }
-  | { name: 'help' }
+  | { name: 'help'; from: 'files' | 'settings' }
   | { name: 'about' }
   | { name: 'editor'; path: string; isNew: boolean; backTo: BackTo }
 
@@ -48,6 +48,7 @@ export default function App() {
           setPage({ name: 'files' })
         }}
         onCancel={config ? () => setPage({ name: 'files' }) : undefined}
+        onHelp={() => setPage({ name: 'help', from: 'settings' })}
       />
     )
   }
@@ -74,7 +75,13 @@ export default function App() {
   }
 
   if (page.name === 'help') {
-    return <HelpPage onBack={() => setPage({ name: 'files' })} />
+    return (
+      <HelpPage
+        onBack={() =>
+          setPage(page.from === 'settings' ? { name: 'settings' } : { name: 'files' })
+        }
+      />
+    )
   }
 
   if (page.name === 'about') {
@@ -87,7 +94,7 @@ export default function App() {
       config={config}
       onOpenSettings={() => setPage({ name: 'settings' })}
       onOpenDrafts={() => setPage({ name: 'drafts' })}
-      onOpenHelp={() => setPage({ name: 'help' })}
+      onOpenHelp={() => setPage({ name: 'help', from: 'files' })}
       onOpenAbout={() => setPage({ name: 'about' })}
       onOpenFile={(path, isNew = false) => openEditor(path, isNew, 'files')}
     />

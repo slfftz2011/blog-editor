@@ -8,9 +8,10 @@ interface Props {
   initial: RepoConfig | null
   onSaved: (cfg: RepoConfig) => void
   onCancel?: () => void
+  onHelp?: () => void
 }
 
-export default function SettingsPage({ initial, onSaved, onCancel }: Props) {
+export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Props) {
   const [cfg, setCfg] = useState<RepoConfig>(initial ?? defaultConfig)
   const [testing, setTesting] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -40,8 +41,28 @@ export default function SettingsPage({ initial, onSaved, onCancel }: Props) {
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 8 }}>仓库配置</h1>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+      }}
+    >
+      <h1 style={{ fontSize: 24, margin: 0 }}>仓库配置</h1>
+      <button
+        onClick={() => onHelp?.()}
+        style={{
+          padding: '6px 12px',
+          background: '#f0f0f0',
+          border: 'none',
+          borderRadius: 6,
+          fontSize: 13,
+          cursor: 'pointer',
+        }}
+      >
+        📖 使用教程
+      </button>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
         PAT 仅保存在本机浏览器 localStorage，建议使用 fine-grained token，
         只授权 blog 仓库的 Contents: Read and write 权限。
