@@ -41,19 +41,8 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
 
   return (
     <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 12,
-        }}
-      >
+      <div style={{ marginBottom: 12 }}>
         <h1 style={{ fontSize: 24, margin: 0 }}>仓库配置</h1>
-        <button onClick={() => onHelp?.()} style={btn('#f0f0f0', '#333')}>
-          📖 使用教程
-        </button>
       </div>
 
       <p style={{ color: '#666', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
@@ -74,7 +63,7 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
         onChange={v => set('pagesBaseUrl', v)}
       />
       <p style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 12 }}>
-        格式：https://用户名.github.io/仓库名，如 https://slfftz2011.github.io/blog
+        格式：https://用户名.github.io/仓库名
       </p>
 
       {result && (
@@ -93,44 +82,31 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
         <button onClick={handleTest} disabled={testing} style={btn('#1976d2')}>
           {testing ? '测试中…' : '测试连接'}
         </button>
         <button onClick={handleSave} style={btn('#43a047')}>保存并进入</button>
         {onCancel && <button onClick={onCancel} style={btn('#757575')}>取消</button>}
+        {onHelp && <button onClick={onHelp} style={btn('#f0f0f0', '#333')}>📖 使用教程</button>}
       </div>
     </div>
   )
 }
 
 function Field({
-  label,
-  value,
-  onChange,
-  type = 'text',
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  type?: string
-}) {
+  label, value, onChange, type = 'text',
+}: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>
-        {label}
-      </label>
+      <label style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 4 }}>{label}</label>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
-          width: '100%',
-          padding: '10px 12px',
-          border: '1px solid #ccc',
-          borderRadius: 8,
-          fontSize: 15,
-          boxSizing: 'border-box',
+          width: '100%', padding: '10px 12px', border: '1px solid #ccc',
+          borderRadius: 8, fontSize: 15, boxSizing: 'border-box',
         }}
       />
     </div>
@@ -139,12 +115,7 @@ function Field({
 
 function btn(bg: string, color = '#fff'): React.CSSProperties {
   return {
-    padding: '10px 16px',
-    background: bg,
-    color,
-    border: 'none',
-    borderRadius: 8,
-    fontSize: 14,
-    cursor: 'pointer',
+    padding: '10px 16px', background: bg, color, border: 'none',
+    borderRadius: 8, fontSize: 14, cursor: 'pointer',
   }
 }

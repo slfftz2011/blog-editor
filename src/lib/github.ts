@@ -107,3 +107,19 @@ export async function uploadBinaryFile(
   })
   await handle(res)
 }
+
+export async function deleteFile(cfg: RepoConfig, path: string, message: string): Promise<void> {
+  // 删除必须先查 SHA
+  const getUrl = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}?ref=${cfg.branch}`
+  const getRes = await fetch(getUrl, { headers: headers(cfg.token) })
+  await handle(getRes)
+  const { sha } = await getRes.json()
+
+  const delUrl = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(path)}`
+  const delRes = await fetch(delUrl, {
+    method: 'DELETE',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, sha, branch: cfg.branch }),
+  })
+  await handle(delRes)
+}

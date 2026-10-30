@@ -4,6 +4,7 @@ import { isPocketEdition } from '../lib/platform'
 export interface ToolbarApi {
   insert: (text: string) => void
   wrap: (prefix: string, suffix: string, placeholder: string) => void
+  focus: () => void
 }
 
 interface Props {
@@ -16,24 +17,22 @@ interface Action {
   run: (api: ToolbarApi) => void
 }
 
-function mobileActions(): Action[] {
-  return [
-    { label: 'B', title: '加粗', run: a => a.wrap('**', '**', '粗体') },
-    { label: 'I', title: '斜体', run: a => a.wrap('*', '*', '斜体') },
-    { label: 'S', title: '删除线', run: a => a.wrap('~~', '~~', '删除线') },
-    { label: '`', title: '行内代码', run: a => a.wrap('`', '`', 'code') },
-    { label: 'H2', title: '标题', run: a => a.insert('\n## ') },
-    { label: '❝', title: '引用', run: a => a.insert('\n> ') },
-    { label: '•', title: '无序列表', run: a => a.insert('\n- ') },
-    { label: '1.', title: '有序列表', run: a => a.insert('\n1. ') },
-    { label: '🔗', title: '链接', run: a => a.wrap('[', '](url)', '链接文字') },
-    { label: '```', title: '代码块', run: a => a.insert('\n```\n\n```\n') },
-    { label: '∑', title: '行内公式', run: a => a.wrap('$', '$', 'x^2') },
-    { label: '⊞', title: '表格', run: a => a.insert('\n| 列1 | 列2 |\n| --- | --- |\n| 值 | 值 |\n') },
-    { label: '─', title: '分割线', run: a => a.insert('\n---\n') },
-    { label: '◇', title: 'Mermaid 图表', run: a => a.insert('\n```mermaid\ngraph TD\n  A[开始] --> B[结束]\n```\n') },
-  ]
-}
+const MOBILE_ACTIONS: Action[] = [
+  { label: 'B', title: '加粗', run: a => a.wrap('**', '**', '粗体') },
+  { label: 'I', title: '斜体', run: a => a.wrap('*', '*', '斜体') },
+  { label: 'S', title: '删除线', run: a => a.wrap('~~', '~~', '删除线') },
+  { label: '`', title: '行内代码', run: a => a.wrap('`', '`', 'code') },
+  { label: 'H2', title: '标题', run: a => a.insert('\n## ') },
+  { label: '❝', title: '引用', run: a => a.insert('\n> ') },
+  { label: '•', title: '无序列表', run: a => a.insert('\n- ') },
+  { label: '1.', title: '有序列表', run: a => a.insert('\n1. ') },
+  { label: '🔗', title: '链接', run: a => a.wrap('[', '](url)', '链接文字') },
+  { label: '```', title: '代码块', run: a => a.insert('\n```\n\n```\n') },
+  { label: '∑', title: '行内公式', run: a => a.wrap('$', '$', 'x^2') },
+  { label: '⊞', title: '表格', run: a => a.insert('\n| 列1 | 列2 |\n| --- | --- |\n| 值 | 值 |\n') },
+  { label: '─', title: '分割线', run: a => a.insert('\n---\n') },
+  { label: '◇', title: 'Mermaid 图表', run: a => a.insert('\n```mermaid\ngraph TD\n  A[开始] --> B[结束]\n```\n') },
+]
 
 interface LatexSymbol {
   display: string
@@ -111,16 +110,6 @@ const LATEX_SYMBOLS: LatexSymbol[] = [
   { display: '↑', command: '\\uparrow', group: '箭头' },
   { display: '↓', command: '\\downarrow', group: '箭头' },
   { display: '↦', command: '\\mapsto', group: '箭头' },
-  // 其他
-  { display: '…', command: '\\cdots', group: '其他' },
-  { display: '⋮', command: '\\vdots', group: '其他' },
-  { display: '∠', command: '\\angle', group: '其他' },
-  { display: '⊥', command: '\\perp', group: '其他' },
-  { display: '∥', command: '\\parallel', group: '其他' },
-  { display: 'ℏ', command: '\\hbar', group: '其他' },
-  { display: '°', command: '\\degree', group: '其他' },
-  { display: '△', command: '\\triangle', group: '其他' },
-  { display: '□', command: '\\square', group: '其他' },
 ]
 
 export default function EditorToolbar({ api }: Props) {
@@ -131,47 +120,93 @@ export default function EditorToolbar({ api }: Props) {
 }
 
 function MobileToolbar({ api }: Props) {
-  const [wide, setWide] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth >= 720 : false,
-  )
+  const [showLatex, setShowLatex] = useState(false)
+  const groups = Array.from(new Set(LATEX_SYMBOLS.map(s => s.group)))
 
-  useEffect(() => {
-    const onResize = () => setWide(window.innerWidth >= 720)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+  function safeRun(fn: () => void) {
+    const tb = api()
+    if (tb) {
+      fn()
+      // 保证操作完后光标不丢
+      setTimeout(() => tb.focus(), 0)
+    }
+  }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 4,
-        padding: '6px 8px',
-        borderBottom: '1px solid #e0e0e0',
-        background: '#fafafa',
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        WebkitOverflowScrolling: 'touch',
-        flexWrap: wide ? 'wrap' : 'nowrap',
-      }}
-    >
-      {mobileActions().map(a => (
+    <div style={{ borderBottom: '1px solid #e0e0e0', background: '#fafafa', position: 'relative' }}>
+      {/* 快捷按钮区 */}
+      <div
+        style={{
+          display: 'flex', gap: 4, padding: '6px 8px', overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch', flexWrap: 'nowrap',
+        }}
+      >
+        {MOBILE_ACTIONS.map(a => (
+          <button
+            key={a.title}
+            title={a.title}
+            onMouseDown={e => e.preventDefault()}
+            onTouchStart={e => e.preventDefault()}
+            onClick={() => safeRun(() => a.run(api()!))}
+            style={toolbarBtn({
+              bold: a.label === 'B',
+              italic: a.label === 'I',
+              mono: a.label.length <= 2 || a.label === '```',
+            })}
+          >
+            {a.label}
+          </button>
+        ))}
         <button
-          key={a.title}
-          title={a.title}
-          onClick={() => {
-            const tb = api()
-            if (tb) a.run(tb)
+          title="LaTeX 符号"
+          onMouseDown={e => e.preventDefault()}
+          onTouchStart={e => e.preventDefault()}
+          onClick={() => setShowLatex(!showLatex)}
+          style={{
+            ...toolbarBtn({}),
+            background: showLatex ? '#1976d2' : '#fff',
+            color: showLatex ? '#fff' : '#333',
+            fontWeight: 'bold',
           }}
-          style={toolbarBtn({
-            bold: a.label === 'B',
-            italic: a.label === 'I',
-            mono: a.label.length <= 2 || a.label === '```',
-          })}
         >
-          {a.label}
+          ∑...
         </button>
-      ))}
+      </div>
+
+      {/* 移动端 LaTeX 抽屉 */}
+      {showLatex && (
+        <div style={{
+          padding: '10px 12px', background: '#fff', borderTop: '1px solid #e0e0e0',
+          maxHeight: '40vh', overflowY: 'auto', boxShadow: 'inset 0 4px 6px -4px rgba(0,0,0,0.1)'
+        }}>
+          {groups.map(group => (
+            <div key={group} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 6, fontWeight: 500 }}>
+                {group}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))', gap: 6 }}>
+                {LATEX_SYMBOLS.filter(s => s.group === group).map(s => (
+                  <button
+                    key={s.command}
+                    onMouseDown={e => e.preventDefault()}
+                    onTouchStart={e => e.preventDefault()}
+                    onClick={() => {
+                      safeRun(() => api()!.insert(s.command + ' '))
+                      setShowLatex(false)
+                    }}
+                    style={{
+                      height: 36, background: '#f5f5f5', border: '1px solid #ddd',
+                      borderRadius: 6, fontSize: 16, color: '#333',
+                    }}
+                  >
+                    {s.display}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -192,35 +227,21 @@ function DesktopToolbar({ api }: Props) {
     const tb = api()
     if (!tb) return
     tb.insert(command + ' ')
+    tb.focus()
   }
 
   const groups = Array.from(new Set(LATEX_SYMBOLS.map(s => s.group)))
 
   return (
-    <div
-      style={{
-        borderBottom: '1px solid #e0e0e0',
-        background: '#fafafa',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 12px',
-        }}
-      >
+    <div style={{ borderBottom: '1px solid #e0e0e0', background: '#fafafa' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px' }}>
         <button
           onClick={() => setOpen(o => !o)}
           style={{
-            padding: '6px 12px',
-            background: open ? '#1976d2' : '#fff',
+            padding: '6px 12px', background: open ? '#1976d2' : '#fff',
             color: open ? '#fff' : '#333',
             border: '1px solid ' + (open ? '#1976d2' : '#d0d0d0'),
-            borderRadius: 6,
-            fontSize: 13,
-            cursor: 'pointer',
+            borderRadius: 6, fontSize: 13, cursor: 'pointer',
           }}
         >
           ∑ LaTeX 符号 {open ? '▴' : '▾'}
@@ -231,46 +252,19 @@ function DesktopToolbar({ api }: Props) {
       </div>
 
       {open && (
-        <div
-          style={{
-            padding: '8px 12px 12px',
-            borderTop: '1px solid #e0e0e0',
-            maxHeight: '40vh',
-            overflowY: 'auto',
-          }}
-        >
+        <div style={{ padding: '8px 12px 12px', borderTop: '1px solid #e0e0e0', maxHeight: '40vh', overflowY: 'auto' }}>
           {groups.map(group => (
             <div key={group} style={{ marginBottom: 10 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#666',
-                  marginBottom: 4,
-                  fontWeight: 500,
-                }}
-              >
-                {group}
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))',
-                  gap: 4,
-                }}
-              >
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 500 }}>{group}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))', gap: 4 }}>
                 {LATEX_SYMBOLS.filter(s => s.group === group).map(s => (
                   <button
                     key={s.command}
                     onClick={() => insertCommand(s.command)}
                     title={`${s.display}  →  ${s.command}`}
                     style={{
-                      height: 34,
-                      background: '#fff',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: 6,
-                      fontSize: 16,
-                      cursor: 'pointer',
-                      color: '#333',
+                      height: 34, background: '#fff', border: '1px solid #e0e0e0',
+                      borderRadius: 6, fontSize: 16, cursor: 'pointer', color: '#333',
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.background = '#f5f5f5'
@@ -295,18 +289,10 @@ function DesktopToolbar({ api }: Props) {
 
 function toolbarBtn(opts: { bold?: boolean; italic?: boolean; mono?: boolean }): React.CSSProperties {
   return {
-    flex: '0 0 auto',
-    minWidth: 34,
-    height: 32,
-    padding: '0 8px',
-    background: '#fff',
-    border: '1px solid #d0d0d0',
-    borderRadius: 6,
-    fontSize: 13,
-    fontFamily: opts.mono ? 'ui-monospace, monospace' : 'inherit',
-    fontWeight: opts.bold ? 700 : 400,
-    fontStyle: opts.italic ? 'italic' : 'normal',
-    cursor: 'pointer',
-    color: '#333',
+    flex: '0 0 auto', minWidth: 34, height: 32, padding: '0 8px',
+    background: '#fff', border: '1px solid #d0d0d0', borderRadius: 6,
+    fontSize: 13, fontFamily: opts.mono ? 'ui-monospace, monospace' : 'inherit',
+    fontWeight: opts.bold ? 700 : 400, fontStyle: opts.italic ? 'italic' : 'normal',
+    cursor: 'pointer', color: '#333',
   }
 }
