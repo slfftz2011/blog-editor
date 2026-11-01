@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef } from 'react'
 import mermaid from 'mermaid'
 import type { RepoConfig } from '../types'
 import { createMarkdown } from '../lib/markdown'
+import { useTheme } from '../lib/theme'
 
-mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' })
+mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' })
 let mermaidCounter = 0
 
 interface Props {
@@ -11,11 +12,20 @@ interface Props {
   content: string
 }
 
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 export default function MarkdownPreview({ config, content }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const html = useMemo(() => createMarkdown(config).render(content), [config, content])
+  const [theme] = useTheme()
 
-  // 图片处理（兼容 Markdown 和纯 HTML 标签）
+  // 图片处理（Markdown 与纯 HTML 标签都覆盖）
   useEffect(() => {
     const root = ref.current
     if (!root) return
@@ -32,7 +42,6 @@ export default function MarkdownPreview({ config, content }: Props) {
       const src = img.getAttribute('src') || ''
       let rawUrl = ''
 
-      // 处理所有以 /images/ 开头的图片（不论来源）
       if (src.startsWith(imagePrefix)) {
         const fileName = src.substring(imagePrefix.length)
         rawUrl = rawBase + imageDir + fileName
@@ -44,7 +53,6 @@ export default function MarkdownPreview({ config, content }: Props) {
         }
       }
 
-      // 如果配置了 raw fallback，监听报错
       const targetRaw = img.getAttribute('data-raw-src')
       if (targetRaw) {
         const fn = () => {
@@ -62,35 +70,57 @@ export default function MarkdownPreview({ config, content }: Props) {
     }
   }, [html, config])
 
-  // Mermaid 渲染
+  // Mermaid 渲染（依赖 theme，切换主题时重新渲染）
   useEffect(() => {
     const root = ref.current
     if (!root) return
     const nodes = root.querySelectorAll<HTMLElement>('.mermaid')
     if (nodes.length === 0) return
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'loose',
+      theme: theme === 'dark' ? 'dark' : 'default',
+    })
+
     let cancelled = false
     ;(async () => {
       for (const node of Array.from(nodes)) {
         if (cancelled) return
-        const code = node.textContent ?? ''
+
+        // 首次渲染保存原始代码，主题切换时复用
+        if (!node.hasAttribute('data-source')) {
+          node.setAttribute('data-source', node.textContent ?? '')
+        }
+        const code = node.getAttribute('data-source') ?? ''
         if (!code.trim()) continue
+
         const id = `mmd-${++mermaidCounter}`
         try {
           const { svg } = await mermaid.render(id, code)
           if (!cancelled) node.innerHTML = svg
         } catch (e: any) {
-          if (!cancelled) node.innerHTML = `<pre style="color:#c62828;font-size:12px">Mermaid 错误: ${e.message}</pre>`
+          if (!cancelled) {
+            node.innerHTML = `<pre class="mermaid-error">Mermaid 错误: ${escapeHtml(
+              e?.message ?? String(e)
+            )}</pre>`
+          }
         }
       }
     })()
-    return () => { cancelled = true }
-  }, [html])
+
+    return () => {
+      cancelled = true
+    }
+  }, [html, theme])
 
   return (
-    <div
-      ref={ref}
-      style={{ height: '100%', overflow: 'auto', padding: 16, fontSize: 15, lineHeight: 1.7 }}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="preview-scroll">
+      <div
+        ref={ref}
+        className="markdown-body"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
   )
 }

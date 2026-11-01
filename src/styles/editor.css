@@ -527,3 +527,176 @@
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
+
+/* ============================================================
+   EditorToolbar（覆盖 tokens.css 里的 .toolbar）
+   ============================================================ */
+
+   .toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    padding: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow: visible;
+    margin-bottom: var(--keyboard-height);
+    transition: transform var(--duration) var(--ease),
+      opacity var(--duration) var(--ease);
+  }
+  
+  .toolbar[data-hidden="true"] {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .toolbar__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: var(--toolbar-h);
+    padding: 0 var(--space-2);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .toolbar__row::-webkit-scrollbar { display: none; }
+  
+  .toolbar__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 34px;
+    height: 32px;
+    padding: 0 var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 400;
+    color: var(--text-primary);
+    background: transparent;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--duration) var(--ease),
+      color var(--duration) var(--ease);
+  }
+  .toolbar__btn:hover { background: var(--surface-hover); }
+  .toolbar__btn:active { background: var(--surface-active); }
+  
+  .toolbar__btn--bold { font-weight: 700; }
+  .toolbar__btn--italic { font-style: italic; }
+  .toolbar__btn--mono { font-family: var(--font-mono); font-size: 12px; }
+  
+  .toolbar__btn.is-active {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  
+  .toolbar__divider {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 var(--space-1);
+  }
+  
+  /* LaTeX 面板：作为工具栏内部展开，不覆盖编辑区 */
+  .latex-drawer {
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    animation: latex-in var(--duration) var(--ease);
+  }
+  
+  @keyframes latex-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .latex-group { margin-bottom: var(--space-3); }
+  .latex-group:last-child { margin-bottom: 0; }
+  
+  .latex-group__label {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+  }
+  
+  .latex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: var(--space-1);
+  }
+  
+  .latex-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    background: var(--surface-hover);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--duration) var(--ease),
+      color var(--duration) var(--ease);
+  }
+  .latex-symbol:hover { background: var(--surface-active); color: var(--accent); }
+  .latex-symbol:active { background: var(--accent-soft); }
+  
+  /* ============================================================
+     CodeMirror markdown 语法高亮
+     ============================================================ */
+  
+  .cm-md-heading { font-weight: 600; color: var(--text-primary); }
+  .cm-md-strong { font-weight: 700; }
+  .cm-md-em { font-style: italic; }
+  .cm-md-strike { text-decoration: line-through; color: var(--text-secondary); }
+  .cm-md-link { color: var(--accent); }
+  .cm-md-url { color: var(--text-secondary); }
+  .cm-md-mono { font-family: var(--font-mono); font-size: 0.92em; }
+  .cm-md-quote { color: var(--text-secondary); font-style: italic; }
+  .cm-md-punct { color: var(--text-tertiary); }
+  .cm-md-hr { color: var(--text-tertiary); }
+  .cm-md-meta { color: var(--text-tertiary); }
+  .cm-md-keyword { color: var(--accent); }
+  .cm-md-string { color: var(--success); }
+  .cm-md-number { color: var(--success); }
+  .cm-md-comment { color: var(--text-tertiary); font-style: italic; }
+  
+  /* 当前行背景：独立变量，避免整体透明度影响文字 */
+  :root { --editor-active-line: rgba(59, 130, 246, 0.06); }
+  [data-theme="dark"] { --editor-active-line: rgba(96, 165, 250, 0.08); }
+  
+  .cm-activeLine {
+    background: var(--editor-active-line);
+    opacity: 1;
+  }
+  
+  /* 移动端隐藏行号，写作更沉浸 */
+  @media (max-width: 640px) {
+    .cm-gutters { display: none; }
+  }
+  
+  /* ============================================================
+     预览容器 + Mermaid 错误
+     ============================================================ */
+  
+  .preview-scroll {
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+  }
+  
+  .mermaid-error {
+    margin: 0;
+    padding: var(--space-3);
+    color: var(--danger);
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
