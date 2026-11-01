@@ -60,56 +60,55 @@ export default function FileListPage({
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 24, margin: 0 }}>文章列表</h1>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button onClick={handleNew} style={btn('#43a047')}>新建</button>
-          <button onClick={onOpenDrafts} style={btn('#fb8c00')}>
-            草稿箱{draftCount > 0 ? ` (${draftCount})` : ''}
-          </button>
-          <button onClick={onOpenSettings} style={btn('#f0f0f0', '#333')}>设置</button>
-          <button onClick={onOpenHelp} style={btn('#f0f0f0', '#333')}>帮助</button>
-          <button onClick={onOpenAbout} style={btn('#f0f0f0', '#333')}>关于</button>
-        </div>
+    <div className="page">
+      <div className="content-col">
+        <header className="page-header">
+          <div>
+            <h1 className="page-title">文章列表</h1>
+            <p className="page-subtitle">
+              {config.owner}/{config.repo} @ {config.branch}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button className="btn btn--primary" onClick={handleNew}>新建</button>
+            <button className="btn btn--outline" onClick={onOpenDrafts}>
+              草稿箱{draftCount > 0 && <span className="badge badge--accent">{draftCount}</span>}
+            </button>
+            <button className="btn btn--ghost" onClick={onOpenSettings}>设置</button>
+            <button className="btn btn--ghost" onClick={onOpenHelp}>帮助</button>
+            <button className="btn btn--ghost" onClick={onOpenAbout}>关于</button>
+          </div>
+        </header>
+
+        {loading && <p className="text-secondary text-sm">加载中…</p>}
+
+        {error && <div className="alert alert--error">{error}</div>}
+
+        {!loading && !error && files.length === 0 && (
+          <div className="empty">没有找到 .md 文件</div>
+        )}
+
+        {files.length > 0 && (
+          <ul className="list">
+            {files.map(f => (
+              <li key={f.path} className="list-item">
+                <button className="list-item__main" onClick={() => onOpenFile(f.path)}>
+                  <div className="list-row__title">{f.name}</div>
+                </button>
+                <button
+                  className="btn btn--icon btn--danger-ghost"
+                  onClick={() => handleDelete(f)}
+                  disabled={deleting === f.path}
+                  aria-label="删除"
+                  title="删除"
+                >
+                  {deleting === f.path ? '…' : '✕'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-
-      <p style={{ color: '#666', fontSize: 13, marginBottom: 12 }}>
-        {config.owner}/{config.repo} @ {config.branch}
-      </p>
-
-      {loading && <p>加载中…</p>}
-      {error && <div style={{ padding: 12, borderRadius: 8, background: '#ffebee', color: '#c62828', fontSize: 14 }}>{error}</div>}
-      {!loading && !error && files.length === 0 && <p style={{ color: '#999' }}>没有找到 .md 文件</p>}
-
-      {files.map(f => (
-        <div key={f.path} style={{ display: 'flex', alignItems: 'stretch', marginBottom: 6, background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, overflow: 'hidden' }}>
-          <button
-            onClick={() => onOpenFile(f.path)}
-            style={{ flex: 1, padding: 12, fontSize: 15, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer' }}
-          >
-            {f.name}
-          </button>
-          <button
-            onClick={() => handleDelete(f)}
-            disabled={deleting === f.path}
-            style={{
-              padding: '0 16px', background: deleting === f.path ? '#ffcdd2' : '#ffebee',
-              color: '#c62828', border: 'none', borderLeft: '1px solid #e0e0e0',
-              cursor: deleting === f.path ? 'not-allowed' : 'pointer', fontSize: 13,
-            }}
-          >
-            {deleting === f.path ? '删除中' : '删除'}
-          </button>
-        </div>
-      ))}
     </div>
   )
-}
-
-function btn(bg: string, color = '#fff'): React.CSSProperties {
-  return {
-    padding: '8px 12px', background: bg, color,
-    border: 'none', borderRadius: 8, fontSize: 14, cursor: 'pointer',
-  }
 }

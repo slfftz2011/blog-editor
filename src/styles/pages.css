@@ -1,0 +1,296 @@
+/* ============================================================
+   页面级通用类：页头 / 键值行 / 徽章 / 折叠面板 / 编辑页骨架
+   ============================================================ */
+
+/* ---------- 带返回按钮的页头 ---------- */
+.page-header--back {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+  .page-header--back .page-title {
+    flex: 1;
+    margin: 0;
+  }
+  
+  /* ---------- 键值行 ---------- */
+  .kv-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-sm);
+  }
+  .kv-row:last-child { border-bottom: none; }
+  .kv-row__label { color: var(--text-secondary); }
+  .kv-row__value {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+    text-align: right;
+    word-break: break-all;
+  }
+  
+  /* ---------- 徽章 ---------- */
+  .badge {
+    display: inline-block;
+    margin-left: var(--space-2);
+    padding: 1px var(--space-2);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+    border-radius: var(--radius-sm);
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+    vertical-align: middle;
+  }
+  .badge--accent {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  
+  /* ---------- 危险 / 警告按钮 ---------- */
+  .btn--danger {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn--danger:hover { opacity: 0.9; }
+  
+  .btn--danger-ghost {
+    color: var(--danger);
+    background: transparent;
+  }
+  .btn--danger-ghost:hover {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+  
+  /* ---------- 警告提示 ---------- */
+  .alert--warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+  }
+  [data-theme="dark"] .alert--warning {
+    background: rgba(245, 158, 11, 0.14);
+    color: #fbbf24;
+  }
+  
+  /* ---------- 更新面板 ---------- */
+  .update-panel {
+    margin-top: var(--space-3);
+    padding: var(--space-4);
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+  }
+  .update-panel__title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: var(--space-1);
+    color: var(--text-primary);
+  }
+  .update-panel__meta {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+  }
+  .update-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  
+  /* ---------- 代码块（非 prose 环境） ---------- */
+  .code-block {
+    margin: 0 0 var(--space-3);
+    padding: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    max-height: 160px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-primary);
+  }
+  
+  /* ---------- 帮助页折叠面板 ---------- */
+  .help-details {
+    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .help-details summary {
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    padding: var(--space-1) 0;
+    list-style: none;
+  }
+  .help-details summary::-webkit-details-marker { display: none; }
+  .help-details summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: var(--space-2);
+    color: var(--text-tertiary);
+    transition: transform var(--duration) var(--ease);
+  }
+  .help-details[open] summary::before { transform: rotate(90deg); }
+  
+  .help-details__body {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--text-primary);
+  }
+  .help-details__body p { margin: 0 0 var(--space-3); }
+  .help-details__body ul,
+  .help-details__body ol {
+    margin: 0 0 var(--space-3);
+    padding-left: var(--space-6);
+  }
+  .help-details__body li { margin: var(--space-1) 0; }
+  .help-details__body li::marker { color: var(--text-tertiary); }
+  .help-details__body code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+  .help-details__body b { font-weight: 600; }
+  .help-details__body > *:last-child { margin-bottom: 0; }
+  
+  /* ---------- 文本辅助类 ---------- */
+  .text-danger { color: var(--danger); }
+  .text-success { color: var(--success); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-tertiary { color: var(--text-tertiary); }
+  .text-sm { font-size: var(--text-sm); }
+  .text-xs { font-size: var(--text-xs); }
+  
+  /* ---------- 列表项（文件列表用） ---------- */
+  .list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .list-item:last-child { border-bottom: none; }
+  
+  .list-item__main {
+    flex: 1;
+    min-width: 0;
+    padding: var(--space-3) var(--space-2);
+    text-align: left;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--duration) var(--ease);
+  }
+  .list-item__main:hover { background: var(--surface-hover); }
+  .list-item__main:active { background: var(--surface-active); }
+  
+  /* ---------- 编辑页骨架 ---------- */
+  .editor-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    background: var(--bg);
+  }
+  
+  .editor-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  
+  .editor-path {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .mode-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  
+  .mode-bar__status {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+  }
+  .mode-bar__status--saved { color: var(--success); }
+  
+  .draft-prompt {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .draft-prompt__text { flex: 1; min-width: 160px; }
+  [data-theme="dark"] .draft-prompt {
+    background: rgba(245, 158, 11, 0.14);
+    color: #fbbf24;
+  }
+  
+  .split-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .split-pane {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+  }
+  .split-pane + .split-pane {
+    border-top: 1px solid var(--border);
+  }
+  @media (orientation: landscape) {
+    .split-container { flex-direction: row; }
+    .split-pane + .split-pane {
+      border-top: none;
+      border-left: 1px solid var(--border);
+    }
+  }
+  
+  /* 编辑页错误条 */
+  .editor-error {
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+    background: var(--danger-soft);
+    color: var(--danger);
+    flex-shrink: 0;
+  }

@@ -161,102 +161,67 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     toast.show('已丢弃草稿', 'info')
   }
 
-  if (loading) return <div style={{ padding: 16 }}>加载中…</div>
+  if (loading) {
+    return (
+      <div className="editor-shell">
+        <div className="empty">加载中…</div>
+      </div>
+    )
+  }
 
-  // PE 区分：编辑/分屏显示工具栏，预览隐藏
   const showToolbar = mode !== 'preview'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 12px',
-          borderBottom: '1px solid #e0e0e0',
-          flexWrap: 'wrap',
-        }}
-      >
-        <button onClick={onBack} style={btn('#757575')}>返回</button>
-        <span
-          style={{
-            flex: 1,
-            fontSize: 13,
-            color: '#666',
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {path}
-        </span>
+    <div className="editor-shell">
+      <div className="editor-header">
+        <button className="btn btn--ghost" onClick={onBack}>返回</button>
+        <span className="editor-path">{path}</span>
         <button
+          className="btn btn--outline"
           onClick={() => handleInsertImage('camera')}
           disabled={uploading}
-          style={btn('#8e24aa')}
         >
           {uploading ? '处理中…' : '拍照'}
         </button>
         <button
+          className="btn btn--outline"
           onClick={() => handleInsertImage('gallery')}
           disabled={uploading}
-          style={btn('#8e24aa')}
         >
           相册
         </button>
-        <button onClick={handleSave} disabled={saving} style={btn('#43a047')}>
+        <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
           {saving ? '保存中…' : '保存'}
         </button>
       </div>
 
       {draftPrompt && (
-        <div
-          style={{
-            padding: '10px 12px',
-            background: '#fff8e1',
-            borderBottom: '1px solid #ffe082',
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ flex: 1, fontSize: 13, color: '#6d4c41', minWidth: 160 }}>
+        <div className="draft-prompt">
+          <span className="draft-prompt__text">
             发现 {formatRelative(draftPrompt.savedAt)} 的草稿
           </span>
-          <button onClick={restoreDraft} style={btn('#f9a825')}>恢复</button>
-          <button onClick={discardDraft} style={btn('#e0e0e0', '#333')}>丢弃</button>
+          <button className="btn btn--primary" onClick={restoreDraft}>恢复</button>
+          <button className="btn btn--outline" onClick={discardDraft}>丢弃</button>
         </div>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          gap: 4,
-          padding: '8px 12px',
-          borderBottom: '1px solid #e0e0e0',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-        }}
-      >
-        <ModeBtn active={mode === 'edit'} onClick={() => setMode('edit')}>编辑</ModeBtn>
-        <ModeBtn active={mode === 'preview'} onClick={() => setMode('preview')}>预览</ModeBtn>
-        <ModeBtn active={mode === 'split'} onClick={() => setMode('split')}>分屏</ModeBtn>
-        {savedAt && <span style={{ marginLeft: 8, fontSize: 12, color: '#2e7d32' }}>已保存</span>}
+      <div className="mode-bar">
+        <div className="segmented" role="group" aria-label="视图模式">
+          <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>编辑</button>
+          <button aria-pressed={mode === 'preview'} onClick={() => setMode('preview')}>预览</button>
+          <button aria-pressed={mode === 'split'} onClick={() => setMode('split')}>分屏</button>
+        </div>
+        {savedAt && (
+          <span className="mode-bar__status mode-bar__status--saved">已保存</span>
+        )}
         {draftSavedAt && !savedAt && (
-          <span style={{ marginLeft: 8, fontSize: 12, color: '#9e9e9e' }}>草稿已暂存</span>
+          <span className="mode-bar__status">草稿已暂存</span>
         )}
       </div>
 
       {showToolbar && <EditorToolbar api={() => editorApi.current} />}
 
-      {error && (
-        <div style={{ padding: 12, background: '#ffebee', color: '#c62828', fontSize: 13 }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="editor-error">{error}</div>}
 
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {mode === 'edit' && (
@@ -268,29 +233,20 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         )}
         {mode === 'preview' && <MarkdownPreview config={config} content={content} />}
         {mode === 'split' && (
-          <div className="split-container" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, borderBottom: '1px solid #e0e0e0' }}>
+          <div className="split-container">
+            <div className="split-pane">
               <MarkdownEditor
                 value={content}
                 onChange={setContent}
                 onReady={api => (editorApi.current = api)}
               />
             </div>
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+            <div className="split-pane">
               <MarkdownPreview config={config} content={content} />
             </div>
           </div>
         )}
       </div>
-
-      <style>{`
-        .split-container { flex-direction: column; }
-        @media (orientation: landscape) {
-          .split-container { flex-direction: row !important; }
-        }
-        .math-block { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
-        .katex-display { margin: 8px 0; }
-      `}</style>
     </div>
   )
 }
@@ -303,35 +259,4 @@ function formatRelative(ts: number): string {
   const h = Math.floor(m / 60)
   if (h < 24) return `${h} 小时前`
   return `${Math.floor(h / 24)} 天前`
-}
-
-function ModeBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '6px 14px',
-        borderRadius: 6,
-        border: '1px solid ' + (active ? '#1976d2' : '#ccc'),
-        background: active ? '#1976d2' : '#fff',
-        color: active ? '#fff' : '#333',
-        fontSize: 13,
-        cursor: 'pointer',
-      }}
-    >
-      {children}
-    </button>
-  )
-}
-
-function btn(bg: string, color = '#fff'): React.CSSProperties {
-  return {
-    padding: '8px 12px',
-    background: bg,
-    color,
-    border: 'none',
-    borderRadius: 6,
-    fontSize: 13,
-    cursor: 'pointer',
-  }
 }
