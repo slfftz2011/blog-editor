@@ -74,6 +74,7 @@ export default function FileListPage({
             <button className="btn btn--outline" onClick={onOpenDrafts}>
               草稿箱{draftCount > 0 && <span className="badge badge--accent">{draftCount}</span>}
             </button>
+            <br></br>
             <button className="btn btn--ghost" onClick={onOpenSettings}>设置</button>
             <button className="btn btn--ghost" onClick={onOpenHelp}>帮助</button>
             <button className="btn btn--ghost" onClick={onOpenAbout}>关于</button>

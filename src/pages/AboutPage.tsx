@@ -32,8 +32,8 @@ export default function AboutPage({ onBack }: Props) {
     <div className="page">
       <div className="content-col">
         <header className="page-header--back">
-          <button className="btn btn--ghost" onClick={onBack}>返回</button>
           <h1 className="page-title">关于</h1>
+          <button className="btn btn--ghost" onClick={onBack}>返回</button>
         </header>
 
         <div className="card">
