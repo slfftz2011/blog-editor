@@ -4,8 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Blog Editor</title>
-    <script type="module" crossorigin src="./assets/index-LhPQxpRn.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DLVrwanO.css">
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t !== 'light' && t !== 'dark' && t !== 'system') t = 'system';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'system');
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-f82N4MQR.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CTzU3ja6.css">
   </head>
   <body>
     <div id="root"></div>
