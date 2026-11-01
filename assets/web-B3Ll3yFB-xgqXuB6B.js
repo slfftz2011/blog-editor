@@ -1,0 +1,1 @@
+import{ao as n}from"./index-CtJ8mIgk.js";class m extends n{openInWebView(e){throw this.unimplemented("Not implemented on web.")}openInSystemBrowser(e){throw this.unimplemented("Not implemented on web.")}openInExternalBrowser(e){throw this.unimplemented("Not implemented on web.")}close(){throw this.unimplemented("Not implemented on web.")}}export{m as InAppBrowserWeb};
