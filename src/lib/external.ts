@@ -1,10 +1,10 @@
-import { Browser } from '@capacitor/browser'
-import { Capacitor } from '@capacitor/core'
+import { InAppBrowser } from '@capacitor/inappbrowser';
 
-export async function openExternal(url: string): Promise<void> {
-  if (Capacitor.isNativePlatform()) {
-    await Browser.open({ url })
-  } else {
+export async function openExternal(url: string) {
+  try {
+    await InAppBrowser.openInExternalBrowser({ url });
+  } catch (error) {
+    console.error('Failed to open external browser:', error);
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 }
