@@ -43,6 +43,19 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const baselineRef = useRef<string | null>(isNew ? NEW_TEMPLATE : null)
   const contentRef = useRef(content)
   contentRef.current = content
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const onResize = () => {
+      // 如果视口高度比屏幕高度小 200px 以上，说明键盘弹起了
+      const isOpen = window.innerHeight - vv.height > 200
+      setIsKeyboardOpen(isOpen)
+    }
+    vv.addEventListener('resize', onResize)
+    return () => vv.removeEventListener('resize', onResize)
+  }, [])
 
   useEffect(() => {
     if (isNew) {
@@ -233,17 +246,21 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         )}
         {mode === 'preview' && <MarkdownPreview config={config} content={content} />}
         {mode === 'split' && (
-          <div className="split-container">
-            <div className="split-pane">
+          <div className="split-container" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            {/* 左栏或上栏：编辑器 */}
+            <div style={{ flex: 1, minHeight: 0, minWidth: 0, borderBottom: isKeyboardOpen ? 'none' : '1px solid #e0e0e0' }}>
               <MarkdownEditor
                 value={content}
                 onChange={setContent}
                 onReady={api => (editorApi.current = api)}
               />
             </div>
-            <div className="split-pane">
-              <MarkdownPreview config={config} content={content} />
-            </div>
+            {/* 右栏或下栏：预览。如果键盘弹起且是移动端，隐藏预览 */}
+            {!isKeyboardOpen && (
+              <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+                <MarkdownPreview config={config} content={content} />
+              </div>
+            )}
           </div>
         )}
       </div>
