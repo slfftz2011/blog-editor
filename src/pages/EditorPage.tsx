@@ -7,6 +7,8 @@ import { useToast } from '../lib/toast'
 import MarkdownEditor, { EditorApi } from '../components/MarkdownEditor'
 import MarkdownPreview from '../components/MarkdownPreview'
 import EditorToolbar from '../components/EditorToolbar'
+import FrontmatterModal from '../components/FrontmatterModal'
+
 
 interface Props {
   config: RepoConfig
@@ -39,6 +41,8 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const [draftPrompt, setDraftPrompt] = useState<{ content: string; savedAt: number } | null>(null)
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
+  const [showMeta, setShowMeta] = useState(false)
+
 
   const editorApi = useRef<EditorApi | null>(null)
   const baselineRef = useRef<string | null>(isNew ? NEW_TEMPLATE : null)
@@ -187,16 +191,17 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
 
   return (
     <div className="editor-shell">
-      <div className="editor-header">
-        <button className="btn btn--ghost" onClick={onBack}>返回</button>
-        <span className="editor-path">{path}</span>
-        <button
-          className="btn btn--outline"
-          onClick={() => handleInsertImage('camera')}
-          disabled={uploading}
-        >
-          {uploading ? '处理中…' : '拍照'}
-        </button>
+    <div className="editor-header">
+      <button className="btn btn--ghost" onClick={onBack}>返回</button>
+      <span className="editor-path">{path}</span>
+      
+      <button className="btn btn--outline" onClick={() => setShowMeta(true)}>
+        ⚙️ 属性
+      </button>
+
+      <button className="btn btn--outline" onClick={() => handleInsertImage('camera')} disabled={uploading}>
+        {uploading ? '处理中…' : '拍照'}
+      </button>
         <button
           className="btn btn--outline"
           onClick={() => handleInsertImage('gallery')}
@@ -266,6 +271,15 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
           </div>
         )}
       </div>
+
+      {showToolbar && <EditorToolbar api={() => editorApi.current} />}
+      
+      <FrontmatterModal 
+        isOpen={showMeta}
+        content={content}
+        onClose={() => setShowMeta(false)}
+        onSave={(newContent) => { setContent(newContent); toast.show('属性已更新', 'info') }}
+      />
     </div>
   )
 }

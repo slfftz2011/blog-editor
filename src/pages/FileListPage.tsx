@@ -22,6 +22,9 @@ export default function FileListPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  
+  // 搜索状态
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     setDraftCount(listDrafts().length)
@@ -37,6 +40,11 @@ export default function FileListPage({
       .finally(() => !cancelled && setLoading(false))
     return () => { cancelled = true }
   }, [config])
+
+  // 过滤后的文件
+  const filteredFiles = files.filter(f => 
+    f.name.toLowerCase().includes(search.toLowerCase())
+  )
 
   function handleNew() {
     const name = window.prompt('文件名（支持包含 . 号）')
@@ -59,7 +67,6 @@ export default function FileListPage({
     try {
       const oldPath = f.path
       const newPath = oldPath.replace(/[^/]+$/, newFileName)
-      
       await renameFile(config, oldPath, newPath, `rename: ${f.name} -> ${newFileName}`)
       
       setFiles(prev => prev.map(item => 
@@ -108,17 +115,29 @@ export default function FileListPage({
           </div>
         </header>
 
-        {loading && <p className="text-secondary text-sm">加载中…</p>}
+        {/* 搜索框 */}
+        <div className="field" style={{ marginBottom: 'var(--space-4)' }}>
+          <input
+            type="search"
+            className="input"
+            placeholder="搜索文章名称..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
 
+        {loading && <p className="text-secondary text-sm">加载中…</p>}
         {error && <div className="alert alert--error">{error}</div>}
 
-        {!loading && !error && files.length === 0 && (
-          <div className="empty">没有找到 .md 文件</div>
+        {!loading && !error && filteredFiles.length === 0 && (
+          <div className="empty">
+            {search ? '没有匹配的文章' : '没有找到 .md 文件'}
+          </div>
         )}
 
-        {files.length > 0 && (
+        {filteredFiles.length > 0 && (
           <ul className="list">
-            {files.map(f => (
+            {filteredFiles.map(f => (
               <li key={f.path} className="list-item">
                 <button className="list-item__main" onClick={() => onOpenFile(f.path)}>
                   <div className="list-row__title">{f.name}</div>
