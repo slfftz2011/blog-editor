@@ -123,3 +123,38 @@ export async function deleteFile(cfg: RepoConfig, path: string, message: string)
   })
   await handle(delRes)
 }
+
+export async function renameFile(
+  cfg: RepoConfig,
+  oldPath: string,
+  newPath: string,
+  message: string,
+): Promise<void> {
+  // 1. 获取旧文件内容和 SHA
+  const oldUrl = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(oldPath)}?ref=${cfg.branch}`
+  const getRes = await fetch(oldUrl, { headers: headers(cfg.token) })
+  await handle(getRes)
+  const oldData = await getRes.json()
+
+  // 2. 在新路径创建文件
+  const newUrl = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(newPath)}`
+  const putRes = await fetch(newUrl, {
+    method: 'PUT',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      content: oldData.content, // GitHub 返回的已经是 base64，直接用
+      branch: cfg.branch,
+    }),
+  })
+  await handle(putRes)
+
+  // 3. 删除旧文件
+  const delUrl = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURI(oldPath)}`
+  const delRes = await fetch(delUrl, {
+    method: 'DELETE',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, sha: oldData.sha, branch: cfg.branch }),
+  })
+  await handle(delRes)
+}
