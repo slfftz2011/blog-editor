@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { EditorView, basicSetup } from 'codemirror'
-import { EditorState, EditorSelection } from '@codemirror/state'
+import { EditorState } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { tags as t } from '@lezer/highlight'
 import { 
   cursorCharLeft, cursorCharRight, cursorLineUp, cursorLineDown,
   selectCharLeft, selectCharRight, selectLineUp, selectLineDown,
@@ -23,6 +25,28 @@ export interface EditorApi {
   focus: () => void
 }
 
+/**
+ * 用稳定类名映射 markdown 语法，颜色全部交给 CSS 变量，
+ * 这样切换深浅色时编辑器不需要重建。
+ */
+const mdHighlight = HighlightStyle.define([
+  { tag: t.heading, class: 'cm-md-heading' },
+  { tag: t.strong, class: 'cm-md-strong' },
+  { tag: t.emphasis, class: 'cm-md-em' },
+  { tag: t.strikethrough, class: 'cm-md-strike' },
+  { tag: t.link, class: 'cm-md-link' },
+  { tag: t.url, class: 'cm-md-url' },
+  { tag: t.monospace, class: 'cm-md-mono' },
+  { tag: t.quote, class: 'cm-md-quote' },
+  { tag: t.processingInstruction, class: 'cm-md-punct' },
+  { tag: t.contentSeparator, class: 'cm-md-hr' },
+  { tag: t.meta, class: 'cm-md-meta' },
+  { tag: t.keyword, class: 'cm-md-keyword' },
+  { tag: t.string, class: 'cm-md-string' },
+  { tag: t.number, class: 'cm-md-number' },
+  { tag: t.comment, class: 'cm-md-comment' },
+])
+
 export default function MarkdownEditor({ value, onChange, onReady }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -38,10 +62,11 @@ export default function MarkdownEditor({ value, onChange, onReady }: Props) {
           basicSetup,
           markdown(),
           EditorView.lineWrapping,
+          syntaxHighlighting(mdHighlight),
+          // 只放必须动态生效的，其余全交给 editor.css
           EditorView.theme({
-            '&': { height: '100%', fontSize: '15px' },
-            '.cm-scroller': { overflow: 'auto' },
-            '.cm-content': { fontFamily: 'ui-monospace, Menlo, monospace' },
+            '&': { height: '100%' },
+            '&.cm-focused': { outline: 'none' },
           }),
           EditorView.updateListener.of(update => {
             if (update.docChanged) {

@@ -38,13 +38,14 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const [mode, setMode] = useState<Mode>('edit')
   const [draftPrompt, setDraftPrompt] = useState<{ content: string; savedAt: number } | null>(null)
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null)
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
 
   const editorApi = useRef<EditorApi | null>(null)
   const baselineRef = useRef<string | null>(isNew ? NEW_TEMPLATE : null)
   const contentRef = useRef(content)
   contentRef.current = content
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
 
+  // 监听手机键盘弹起状态
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
@@ -236,6 +237,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
 
       {error && <div className="editor-error">{error}</div>}
 
+      {/* 主体区域 */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {mode === 'edit' && (
           <MarkdownEditor
@@ -245,19 +247,19 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
           />
         )}
         {mode === 'preview' && <MarkdownPreview config={config} content={content} />}
+        
         {mode === 'split' && (
-          <div className="split-container" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-            {/* 左栏或上栏：编辑器 */}
-            <div style={{ flex: 1, minHeight: 0, minWidth: 0, borderBottom: isKeyboardOpen ? 'none' : '1px solid #e0e0e0' }}>
+          <div className="split-container">
+            <div className="split-pane">
               <MarkdownEditor
                 value={content}
                 onChange={setContent}
                 onReady={api => (editorApi.current = api)}
               />
             </div>
-            {/* 右栏或下栏：预览。如果键盘弹起且是移动端，隐藏预览 */}
+            {/* 键盘弹起时隐藏下半部分的预览，保证输入空间 */}
             {!isKeyboardOpen && (
-              <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+              <div className="split-pane">
                 <MarkdownPreview config={config} content={content} />
               </div>
             )}
