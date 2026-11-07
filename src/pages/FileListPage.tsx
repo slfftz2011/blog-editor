@@ -116,7 +116,13 @@ export default function FileListPage({
         </header>
 
         {/* 搜索框 */}
-        <div className="field" style={{ marginBottom: 'var(--space-4)' }}>
+        <div 
+          className="field" 
+          style={{ 
+            marginTop: 'var(--space-5)',
+            marginBottom: 'var(--space-4)' 
+          }}
+        >
           <input
             type="search"
             className="input"
