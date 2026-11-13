@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { isPocketEdition } from '../lib/platform'
 import { LATEX_SYMBOLS, EXTRA_SYMBOLS } from '../lib/symbols'
 
@@ -22,7 +22,6 @@ interface Action {
   run: (api: ToolbarApi) => void
 }
 
-// 这里把 H2 变成了调用 toggleHeading()
 const ACTIONS: Action[] = [
   { label: 'B', title: '加粗', variant: 'bold', run: a => a.wrap('**', '**', '粗体') },
   { label: 'I', title: '斜体', variant: 'italic', run: a => a.wrap('*', '*', '斜体') },
@@ -42,20 +41,11 @@ const ACTIONS: Action[] = [
 
 const GROUPS = Array.from(new Set(LATEX_SYMBOLS.map(s => s.group)))
 
-export default function EditorToolbar({ api }: Props) {
-  if (isPocketEdition()) {
-    return <MobileToolbar api={api} />
-  }
-  return <DesktopToolbar api={api} />
-}
-
-// ================= 公共方法 =================
 function useSafeRun(api: () => ToolbarApi | null) {
   return (fn: (a: ToolbarApi) => void) => {
     const tb = api()
     if (!tb) return
     fn(tb)
-    // 工具栏按钮会抢焦点，操作后把光标还给编辑器
     setTimeout(() => tb.focus(), 0)
   }
 }
@@ -73,19 +63,10 @@ function btnClass(a: Action) {
   ].filter(Boolean).join(' ')
 }
 
-// ================= 桌面端 =================
-function DesktopToolbar({ api }: Props) {
+// ================= 1. Markdown 快捷工具栏（上方） =================
+export function MarkdownToolbar({ api }: Props) {
   const [showLatex, setShowLatex] = useState(false)
   const safeRun = useSafeRun(api)
-
-  useEffect(() => {
-    if (!showLatex) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setShowLatex(false)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [showLatex])
 
   return (
     <div className="toolbar">
@@ -96,7 +77,6 @@ function DesktopToolbar({ api }: Props) {
             type="button"
             className={btnClass(a)}
             title={a.title}
-            aria-label={a.title}
             onMouseDown={preventBlur}
             onTouchStart={preventBlur}
             onClick={() => safeRun(a.run)}
@@ -109,8 +89,6 @@ function DesktopToolbar({ api }: Props) {
           type="button"
           className={`toolbar__btn toolbar__btn--mono${showLatex ? ' is-active' : ''}`}
           title="LaTeX 符号"
-          aria-label="LaTeX 符号"
-          aria-expanded={showLatex}
           onMouseDown={preventBlur}
           onTouchStart={preventBlur}
           onClick={() => setShowLatex(v => !v)}
@@ -130,7 +108,6 @@ function DesktopToolbar({ api }: Props) {
                     key={s.command}
                     type="button"
                     className="latex-symbol"
-                    title={`${s.display}  →  ${s.command}`}
                     onMouseDown={preventBlur}
                     onTouchStart={preventBlur}
                     onClick={() => {
@@ -150,105 +127,43 @@ function DesktopToolbar({ api }: Props) {
   )
 }
 
-// ================= 移动端 (PE) =================
-function MobileToolbar({ api }: Props) {
-  const [showLatex, setShowLatex] = useState(false)
-  const [showKeys, setShowKeys] = useState(false)
+// ================= 2. 键盘辅助工具栏（下方） =================
+export function KeypadToolbar({ api }: Props) {
   const safeRun = useSafeRun(api)
+  const [showSymbols, setShowSymbols] = useState(false)
+
+  // 桌面端不需要这个辅助键盘
+  if (!isPocketEdition()) return null
 
   return (
-    <div className="toolbar">
+    <div className="toolbar" style={{ background: 'var(--surface-hover)' }}>
       <div className="toolbar__row">
-        {ACTIONS.map(a => (
-          <button
-            key={a.title}
-            type="button"
-            className={btnClass(a)}
-            title={a.title}
-            aria-label={a.title}
-            onMouseDown={preventBlur}
-            onTouchStart={preventBlur}
-            onClick={() => safeRun(a.run)}
-          >
-            {a.label}
-          </button>
-        ))}
+        <button className="toolbar__btn" style={{ flex: 1 }} onPointerDown={preventBlur} onClick={() => safeRun(a => a.insertTab())}>Tab</button>
+        <button className="toolbar__btn" style={{ flex: 1 }} onPointerDown={preventBlur} onClick={() => safeRun(a => a.moveCursor('left', false))}>←</button>
+        <button className="toolbar__btn" style={{ flex: 1 }} onPointerDown={preventBlur} onClick={() => safeRun(a => a.moveCursor('right', false))}>→</button>
+        <button className="toolbar__btn" style={{ flex: 1 }} onPointerDown={preventBlur} onClick={() => safeRun(a => a.moveCursor('up', false))}>↑</button>
+        <button className="toolbar__btn" style={{ flex: 1 }} onPointerDown={preventBlur} onClick={() => safeRun(a => a.moveCursor('down', false))}>↓</button>
         <div className="toolbar__divider" />
-        <button
-          type="button"
-          className={`toolbar__btn toolbar__btn--mono${showLatex ? ' is-active' : ''}`}
-          title="LaTeX 符号"
-          aria-label="LaTeX 符号"
-          aria-expanded={showLatex}
-          onMouseDown={preventBlur}
-          onTouchStart={preventBlur}
-          onClick={() => { setShowLatex(v => !v); setShowKeys(false) }}
+        <button className="toolbar__btn" style={{ flex: 1 }} onPointerDown={preventBlur} onClick={() => safeRun(a => a.moveCursor('left', true))}>选左</button>
+        <button className="toolbar__btn" style={{ flex: 1 }} onPointerDown={preventBlur} onClick={() => safeRun(a => a.moveCursor('right', true))}>选右</button>
+        <div className="toolbar__divider" />
+        <button 
+          className={`toolbar__btn ${showSymbols ? 'is-active' : ''}`} 
+          onPointerDown={preventBlur} 
+          onClick={() => setShowSymbols(v => !v)}
         >
-          ∑…
-        </button>
-        <button
-          type="button"
-          className={`toolbar__btn${showKeys ? ' is-active' : ''}`}
-          title="扩展按键"
-          aria-label="扩展按键"
-          aria-expanded={showKeys}
-          onMouseDown={preventBlur}
-          onTouchStart={preventBlur}
-          onClick={() => { setShowKeys(v => !v); setShowLatex(false) }}
-        >
-          ⌨️
+          #+
         </button>
       </div>
-
-      {/* LaTeX 符号面板 */}
-      {showLatex && (
-        <div className="latex-drawer">
-          {GROUPS.map(group => (
-            <div key={group} className="latex-group">
-              <div className="latex-group__label">{group}</div>
-              <div className="latex-grid">
-                {LATEX_SYMBOLS.filter(s => s.group === group).map(s => (
-                  <button
-                    key={s.command}
-                    type="button"
-                    className="latex-symbol"
-                    title={`${s.display}  →  ${s.command}`}
-                    onMouseDown={preventBlur}
-                    onTouchStart={preventBlur}
-                    onClick={() => {
-                      safeRun(a => a.insert(s.command + ' '))
-                      setShowLatex(false)
-                    }}
-                  >
-                    {s.display}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 扩展按键面板 */}
-      {showKeys && (
-        <div className="latex-drawer">
-          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-            <ActionKey label="Tab" onClick={() => safeRun(a => a.insertTab())} />
-            <ActionKey label="←" onClick={() => safeRun(a => a.moveCursor('left', false))} />
-            <ActionKey label="→" onClick={() => safeRun(a => a.moveCursor('right', false))} />
-            <ActionKey label="↑" onClick={() => safeRun(a => a.moveCursor('up', false))} />
-            <ActionKey label="↓" onClick={() => safeRun(a => a.moveCursor('down', false))} />
-          </div>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-            <ActionKey label="← 选中" onClick={() => safeRun(a => a.moveCursor('left', true))} />
-            <ActionKey label="选中 →" onClick={() => safeRun(a => a.moveCursor('right', true))} />
-            <ActionKey label="↑ 选中" onClick={() => safeRun(a => a.moveCursor('up', true))} />
-            <ActionKey label="选中 ↓" onClick={() => safeRun(a => a.moveCursor('down', true))} />
-          </div>
-          <div className="latex-grid" style={{ borderTop: '1px dashed var(--border)', paddingTop: 8 }}>
+      
+      {/* 特殊字符面板 */}
+      {showSymbols && (
+        <div className="latex-drawer" style={{ padding: '8px' }}>
+          <div className="latex-grid">
             {EXTRA_SYMBOLS.map(s => (
               <button 
                 key={s} 
+                type="button"
                 className="latex-symbol" 
                 onMouseDown={preventBlur}
                 onTouchStart={preventBlur}
@@ -261,21 +176,5 @@ function MobileToolbar({ api }: Props) {
         </div>
       )}
     </div>
-  )
-}
-
-// 扩展按键的封装
-function ActionKey({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="toolbar__btn"
-      style={{ flex: 1, background: 'var(--surface-hover)' }}
-      onMouseDown={preventBlur}
-      onTouchStart={preventBlur}
-      onClick={onClick}
-    >
-      {label}
-    </button>
   )
 }

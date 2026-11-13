@@ -6,7 +6,7 @@ import { saveDraft, loadDraft, clearDraft } from '../lib/draft'
 import { useToast } from '../lib/toast'
 import MarkdownEditor, { EditorApi } from '../components/MarkdownEditor'
 import MarkdownPreview from '../components/MarkdownPreview'
-import EditorToolbar from '../components/EditorToolbar'
+import { MarkdownToolbar, KeypadToolbar } from '../components/EditorToolbar'
 import FrontmatterModal from '../components/FrontmatterModal'
 
 
@@ -42,12 +42,25 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const [showMeta, setShowMeta] = useState(false)
-
+  const [isWideScreen, setIsWideScreen] = useState(window.innerWidth >= 768)
 
   const editorApi = useRef<EditorApi | null>(null)
   const baselineRef = useRef<string | null>(isNew ? NEW_TEMPLATE : null)
   const contentRef = useRef(content)
   contentRef.current = content
+
+  useEffect(() => {
+    const onResize = () => setIsWideScreen(window.innerWidth >= 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  // 当键盘弹起且不是大屏时，强制切换到编辑模式
+  useEffect(() => {
+    if (isKeyboardOpen && !isWideScreen && mode === 'split') {
+      setMode('edit')
+    }
+  }, [isKeyboardOpen, isWideScreen, mode])
 
   // 监听手机键盘弹起状态
   useEffect(() => {
@@ -224,12 +237,15 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         </div>
       )}
 
-      <div className="mode-bar">
-        <div className="segmented" role="group" aria-label="视图模式">
-          <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>编辑</button>
-          <button aria-pressed={mode === 'preview'} onClick={() => setMode('preview')}>预览</button>
+    <div className="mode-bar">
+      <div className="segmented" role="group" aria-label="视图模式">
+        <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>编辑</button>
+        <button aria-pressed={mode === 'preview'} onClick={() => setMode('preview')}>预览</button>
+        {/* 只有大屏才显示分屏 */}
+        {isWideScreen && (
           <button aria-pressed={mode === 'split'} onClick={() => setMode('split')}>分屏</button>
-        </div>
+        )}
+      </div>
         {savedAt && (
           <span className="mode-bar__status mode-bar__status--saved">已保存</span>
         )}
@@ -237,8 +253,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
           <span className="mode-bar__status">草稿已暂存</span>
         )}
       </div>
-
-      {showToolbar && <EditorToolbar api={() => editorApi.current} />}
 
       {error && <div className="editor-error">{error}</div>}
 
@@ -272,7 +286,9 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         )}
       </div>
 
-      {showToolbar && <EditorToolbar api={() => editorApi.current} />}
+      {showToolbar && <MarkdownToolbar api={() => editorApi.current} />}
+      
+      <KeypadToolbar api={() => editorApi.current} />
       
       <FrontmatterModal 
         isOpen={showMeta}
