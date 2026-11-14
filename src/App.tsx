@@ -99,6 +99,7 @@ export default function App() {
       key={refreshKey}
       config={config}
       onOpenSettings={() => setPage({ name: 'settings' })}
+      onOpenImages={() => setPage({ name: 'images' })}
       onOpenDrafts={() => setPage({ name: 'drafts' })}
       onOpenHelp={() => setPage({ name: 'help', from: 'files' })}
       onOpenAbout={() => setPage({ name: 'about' })}
