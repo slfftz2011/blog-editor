@@ -7,6 +7,7 @@ import EditorPage from './pages/EditorPage'
 import DraftsPage from './pages/DraftsPage'
 import HelpPage from './pages/HelpPage'
 import AboutPage from './pages/AboutPage'
+import ImageListPage from './pages/ImageListPage'
 
 type BackTo = 'files' | 'drafts'
 
@@ -16,6 +17,7 @@ type Page =
   | { name: 'drafts' }
   | { name: 'help'; from: 'files' | 'settings' }
   | { name: 'about' }
+  | { name: 'images' }
   | { name: 'editor'; path: string; isNew: boolean; backTo: BackTo }
 
 export default function App() {
@@ -86,6 +88,10 @@ export default function App() {
 
   if (page.name === 'about') {
     return <AboutPage onBack={() => setPage({ name: 'files' })} />
+  }
+  
+  if (page.name === 'images') {
+    return <ImageListPage config={config} onBack={() => setPage({ name: 'files' })} />
   }
 
   return (

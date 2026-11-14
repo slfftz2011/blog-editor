@@ -16,15 +16,12 @@ export default function MarkdownPreview({ config, content, pendingImages = [] }:
   const ref = useRef<HTMLDivElement>(null)
   const html = useMemo(() => createMarkdown(config).render(content), [config, content])
 
-  // 处理图片渲染（兼容网络图片、本地暂存图片、各种相对路径）
   useEffect(() => {
     const root = ref.current
     if (!root) return
 
-    const imagePrefix = config.imageUrlPrefix.replace(/\/+$/, '') + '/'
     const imageDir = config.imageDir.replace(/\/+$/, '') + '/'
     const rawBase = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/`
-    const pagesBase = config.pagesBaseUrl.trim().replace(/\/+$/, '')
 
     const imgs = root.querySelectorAll<HTMLImageElement>('img')
     const handlers: Array<{ el: HTMLImageElement; fn: () => void }> = []
@@ -32,50 +29,28 @@ export default function MarkdownPreview({ config, content, pendingImages = [] }:
     imgs.forEach(img => {
       const src = img.getAttribute('src') || ''
 
-      // 1. 优先检查是不是属于“暂存的待上传图片”
+      // 1. 本地待上传的图片
       const pending = pendingImages.find(p => src.includes(p.id))
       if (pending) {
         img.setAttribute('src', `data:image/jpeg;base64,${pending.base64}`)
-        img.removeAttribute('data-raw-src') // 防止触发 fallback
         return
       }
 
-      // 2. 处理正常的网络相对路径
+      // 2. 远端图片
       if (src && !src.startsWith('http') && !src.startsWith('data:')) {
-        let fileName = src
-        // 尝试匹配 /images/xxx 或者直接 xxx
-        if (src.includes(imagePrefix)) {
-          fileName = src.split(imagePrefix)[1]
-        } else if (src.startsWith('/')) {
-          fileName = src.substring(1) // 去掉开头的 /
-        }
+        // 不论前缀是 /images 还是 /blog/images，只拿最后的文件名
+        const fileName = src.split('/').pop() || ''
+        if (!fileName) return
 
-        // 组合出来真实的 GitHub Raw 地址
+        // 直接拼装 GitHub Raw 地址（Raw 始终能访问真实文件）
         const rawUrl = rawBase + imageDir + fileName
-        if (pagesBase) {
-          img.setAttribute('src', `${pagesBase}${imagePrefix}${fileName}`)
-          img.setAttribute('data-raw-src', rawUrl)
-        } else {
-          img.setAttribute('src', rawUrl)
-        }
-      }
-
-      // 3. 处理 fallback（Pages 加载失败切 Raw）
-      const targetRaw = img.getAttribute('data-raw-src')
-      if (targetRaw) {
-        const fn = () => {
-          if (img.src === targetRaw) return
-          img.src = targetRaw
-        }
-        img.addEventListener('error', fn)
-        handlers.push({ el: img, fn })
-        if (img.complete && img.naturalWidth === 0) fn()
+        img.setAttribute('src', rawUrl)
       }
     })
 
     return () => handlers.forEach(({ el, fn }) => el.removeEventListener('error', fn))
-  }, [html, config, pendingImages]) // 确保 pendingImages 更新时重新执行替换
-
+  }, [html, config, pendingImages])
+  
   // Mermaid 渲染
   useEffect(() => {
     const root = ref.current

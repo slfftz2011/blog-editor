@@ -134,7 +134,21 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     }
   }, [path, isNew])
 
-  // 修改 handleInsertImage
+  // 动态计算带 root 前缀的图片路径
+  function getImageUrlPrefix() {
+    let rootPath = ''
+    try {
+      if (config.pagesBaseUrl) {
+        const url = new URL(config.pagesBaseUrl)
+        rootPath = url.pathname.replace(/\/+$/, '') // 提取如 '/blog'
+      }
+    } catch {}
+    
+    const imgPrefix = config.imageUrlPrefix.replace(/^\/+/, '').replace(/\/+$/, '') // 提取如 'img'
+    const combined = [rootPath, imgPrefix].filter(Boolean).join('/')
+    return combined.startsWith('/') ? combined : '/' + combined
+  }
+
   async function handleInsertImage(source: 'camera' | 'gallery') {
     setError(null)
     setUploading(true)
@@ -145,11 +159,12 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         return
       }
       const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      // 暂存起来，并生成一个本地 data URI 用于临时预览
       setPendingImages(prev => [...prev, { id, base64 }])
       
-      // 插入 Markdown 占位
-      const markdown = `![image](/images/${id}.jpg)`
+      // 👇 使用动态计算的路径前缀
+      const prefix = getImageUrlPrefix()
+      const markdown = `![image](${prefix}/${id}.jpg)`
+      
       editorApi.current?.insert(markdown)
       editorApi.current?.focus()
       toast.show('图片已插入（将在保存时上传）', 'info')

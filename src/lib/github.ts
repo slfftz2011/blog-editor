@@ -158,3 +158,41 @@ export async function renameFile(
   })
   await handle(delRes)
 }
+
+export interface ImageItem {
+  path: string      // 完整路径，如 source/images/post1/xxx.jpg
+  name: string      // 文件名，如 xxx.jpg
+  folder: string    // 所在目录，如 post1（相对于 imageDir）
+  url: string       // 预览地址
+  sha?: string
+}
+
+export async function listImages(cfg: RepoConfig): Promise<ImageItem[]> {
+  const url = `${API}/repos/${cfg.owner}/${cfg.repo}/git/trees/${cfg.branch}?recursive=1`
+  const res = await fetch(url, { headers: headers(cfg.token) })
+  await handle(res)
+  const data = await res.json()
+
+  const imageDir = cfg.imageDir.replace(/\/+$/, '') + '/'
+  const imgExts = /\.(jpe?g|png|gif|webp|svg)$/i
+  const rawBase = `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${cfg.branch}/`
+
+  return (data.tree as any[])
+    .filter(e => e.type === 'blob')
+    .filter(e => e.path.startsWith(imageDir) && e.path.match(imgExts))
+    .map(e => {
+      const relativePath = e.path.substring(imageDir.length) // 例如 post1/xxx.jpg
+      const parts = relativePath.split('/')
+      const name = parts.pop() || ''
+      const folder = parts.join('/') || '根目录'
+      
+      return {
+        path: e.path,
+        name,
+        folder,
+        url: rawBase + e.path,
+        sha: e.sha
+      }
+    })
+    .sort((a, b) => a.path.localeCompare(b.path))
+}

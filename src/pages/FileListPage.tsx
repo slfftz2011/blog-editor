@@ -11,10 +11,11 @@ interface Props {
   onOpenHelp: () => void
   onOpenAbout: () => void
   onOpenFile: (path: string, isNew?: boolean) => void
+  onOpenImages: () => void
 }
 
 export default function FileListPage({
-  config, onOpenSettings, onOpenDrafts, onOpenHelp, onOpenAbout, onOpenFile,
+  config, onOpenSettings, onOpenDrafts, onOpenHelp, onOpenAbout, onOpenFile, onOpenImages
 }: Props) {
   const toast = useToast()
   const [files, setFiles] = useState<FileItem[]>([])
@@ -81,21 +82,23 @@ export default function FileListPage({
   }
 
   async function handleDelete(f: FileItem) {
-    // 1. 先读一下内容，看看有没有关联图片
     try {
       const { readFile } = await import('../lib/github')
       const fileData = await readFile(config, f.path)
       
-      // 匹配所有 ![](...)，不限制必须是以 /images/ 开头
-      const imgRegex = /!\[.*?\]\((?!http)(.*?)\)/g
+      // 👇 匹配所有非外链的图片路径
+      const imgRegex = /!\[.*?\]\((?![a-z]+:)([^)]+)\)/gi
       const matches = [...fileData.content.matchAll(imgRegex)]
+      const rawPaths = matches.map(m => m[1].trim())
       
-      const imagesToDelete = matches
-        .map(m => m[1].trim())
-        .filter(path => path !== '') // 过滤空路径
-        // 过滤掉可能存在的 data: base64 图片
-        .filter(path => !path.startsWith('data:'))
-        
+      // 👇 只提取文件名，统一拼接到 imageDir 去删除
+      const imagesToDelete = rawPaths
+        .map(p => {
+          const fileName = p.split('/').pop()
+          return fileName ? `${config.imageDir.replace(/\/+$/, '')}/${fileName}` : null
+        })
+        .filter((p): p is string => !!p)
+
       let confirmMsg = `确定要删除《${f.name}》吗？此操作无法撤销。`
       let deleteImages = false
 
@@ -108,13 +111,12 @@ export default function FileListPage({
 
       setActionLoading(f.path)
 
-      // 2. 删除文章
+      // 删除文章
       await deleteFile(config, f.path, `delete post: ${f.path}`)
       
-      // 3. 如果用户确认，删除关联图片
+      // 删除关联图片
       if (deleteImages && imagesToDelete.length > 0) {
-        for (const imgUrl of imagesToDelete) {
-          const imgPath = config.imageDir.replace(/\/+$/, '') + imgUrl.replace(config.imageUrlPrefix.replace(/\/+$/, ''), '')
+        for (const imgPath of imagesToDelete) {
           try {
             await deleteFile(config, imgPath, `delete image: ${imgPath}`)
           } catch (e) {
@@ -146,6 +148,9 @@ export default function FileListPage({
             <button className="btn btn--primary" onClick={handleNew}>新建</button>
             <button className="btn btn--outline" onClick={onOpenDrafts}>
               草稿箱{draftCount > 0 && <span className="badge badge--accent">{draftCount}</span>}
+            </button>
+            <button className="btn btn--outline" onClick={onOpenImages}>
+              🖼️ 资源库
             </button>
             <button className="btn btn--ghost" onClick={onOpenSettings}>设置</button>
             <button className="btn btn--ghost" onClick={onOpenHelp}>帮助</button>
