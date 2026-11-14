@@ -20,23 +20,16 @@ export default function MarkdownPreview({ config, content, pendingImages = [] }:
     const root = ref.current
     if (!root) return
 
-    // 计算基础路径
-    const rawBase = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/`
-    const imageDir = config.imageDir.replace(/^\/+|\/+$/g, '') // 比如 source/images
+    // 统一路径处理：去掉末尾的 /
+    const cleanRoot = config.root.endsWith('/') ? config.root.slice(0, -1) : config.root
+    const cleanImgPrefix = config.imageUrlPrefix.startsWith('/') ? config.imageUrlPrefix.slice(1) : config.imageUrlPrefix
+    const cleanImgDir = config.imageDir.replace(/^\/+|\/+$/g, '')
     
-    // 解析 Pages 地址和 Root 前缀
-    let pagesBase = ''
-    let rootPath = ''
-    if (config.pagesBaseUrl) {
-      pagesBase = config.pagesBaseUrl.replace(/\/+$/, '') // 比如 https://xx.github.io/blog
-      try {
-        const u = new URL(pagesBase)
-        rootPath = u.pathname.replace(/\/+$/, '') // 提取出 /blog
-      } catch {}
-    }
-    
-    // 提取 imageUrlPrefix，比如 /images
-    const imgPrefix = config.imageUrlPrefix.replace(/^\/+|\/+$/g, '')
+    // 完整的相对匹配前缀，如 /blog/img/
+    const matchPrefix = `${cleanRoot}/${cleanImgPrefix}/`
+
+    // CDN 地址（替代 raw）
+    const jsDelivrBase = `https://cdn.jsdelivr.net/gh/${config.owner}/${config.repo}@${config.branch}/`
 
     const imgs = root.querySelectorAll<HTMLImageElement>('img')
     const handlers: Array<{ el: HTMLImageElement; fn: () => void }> = []
@@ -45,54 +38,44 @@ export default function MarkdownPreview({ config, content, pendingImages = [] }:
       const src = img.getAttribute('src') || ''
       if (!src) return
 
-      // 1. 本地暂存图片
+      // 1. 本地暂存图
       const pending = pendingImages.find((p: any) => src.includes(p.id))
       if (pending) {
         img.setAttribute('src', `data:image/jpeg;base64,${pending.base64}`)
-        img.removeAttribute('data-raw-src')
         return
       }
 
-      // 2. 远端图片处理
+      // 2. 远端图处理
       if (!src.startsWith('http') && !src.startsWith('data:')) {
-        // 提取相对路径（比如 post1/a.jpg）
-        let relPath = ''
-        if (rootPath && src.startsWith(rootPath)) {
-          relPath = src.substring(rootPath.length) // 去掉 /blog 变成 /images/post1/a.jpg
-        } else {
-          relPath = src
+        // 尝试提取相对路径，比如 /blog/img/post1/a.jpg -> post1/a.jpg
+        let relPath = src
+        if (src.startsWith(matchPrefix)) {
+          relPath = src.substring(matchPrefix.length)
+        } else if (src.startsWith('/')) {
+          // 如果不是标准的 root+prefix，兜底去掉开头的 /
+          relPath = src.substring(1)
         }
 
-        // 去掉开头的 /images/ 或者 /img/ (基于 imgPrefix)
-        const prefixWithSlash = `/${imgPrefix}/`
-        if (relPath.startsWith(prefixWithSlash)) {
-          relPath = relPath.substring(prefixWithSlash.length)
-        } else if (relPath.startsWith('/')) {
-          relPath = relPath.substring(1) // 如果只有斜杠
-        }
-
-        // 现在 relPath 是 post1/a.jpg
+        // 拼装 CDN 地址
+        const cdnUrl = jsDelivrBase + cleanImgDir + '/' + relPath
         
-        // 拼装 Raw 地址
-        const rawUrl = rawBase + imageDir + '/' + relPath
-        
-        if (pagesBase) {
-          // 拼装 Pages 真实地址
-          const pagesUrl = `${pagesBase}/${imgPrefix}/${relPath}`
+        if (config.pagesBaseUrl) {
+          // 优先使用 Hexo 实际部署的 Pages 地址（速度最快）
+          const pagesUrl = `${config.pagesBaseUrl.replace(/\/+$/, '')}${matchPrefix}${relPath}`
           img.setAttribute('src', pagesUrl)
-          img.setAttribute('data-raw-src', rawUrl) // 作为 fallback
+          img.setAttribute('data-cdn-src', cdnUrl) // CDN 作为后备
         } else {
-          // 如果没配置 Pages，直接走 Raw
-          img.setAttribute('src', rawUrl)
+          // 没填域名，直接用 CDN
+          img.setAttribute('src', cdnUrl)
         }
       }
 
-      // 3. 监听错误，降级到 Raw
-      const targetRaw = img.getAttribute('data-raw-src')
-      if (targetRaw) {
+      // 3. Pages 加载失败降级到 CDN
+      const targetCdn = img.getAttribute('data-cdn-src')
+      if (targetCdn) {
         const fn = () => {
-          if (img.src === targetRaw) return
-          img.src = targetRaw
+          if (img.src === targetCdn) return
+          img.src = targetCdn
         }
         img.addEventListener('error', fn)
         handlers.push({ el: img, fn })

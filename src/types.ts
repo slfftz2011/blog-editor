@@ -7,6 +7,7 @@ export interface RepoConfig {
   imageDir: string
   imageUrlPrefix: string
   pagesBaseUrl: string
+  root: string
 }
 
 export interface FileItem {

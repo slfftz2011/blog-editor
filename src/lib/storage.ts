@@ -3,14 +3,15 @@ import type { RepoConfig } from '../types'
 const KEY = 'blog-editor-config'
 
 export const defaultConfig: RepoConfig = {
-  owner: 'slfftz2011',
-  repo: 'blog',
+  owner: '',
+  repo: '',
   branch: 'dev',
   token: '',
   postsPath: 'source/_posts',
-  imageDir: 'source/img',
+  imageDir: 'source/images',
   imageUrlPrefix: '/img',
   pagesBaseUrl: '',
+  root: '/',
 }
 
 export function loadConfig(): RepoConfig {

@@ -111,18 +111,11 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     return () => clearTimeout(t)
   }, [content, path, isNew, loading])
 
-  // 根据 Setting 里的 Pages 地址自动生成 root 前缀
-  function getImgPrefix() {
-    let root = ''
-    try {
-      if (config.pagesBaseUrl) {
-        const url = new URL(config.pagesBaseUrl)
-        root = url.pathname.replace(/\/+$/, '') // 提取出 /blog
-      }
-    } catch {}
-    const imgDir = config.imageUrlPrefix.replace(/^\/+|\/+$/g, '') // 提取出 images
-    const combined = [root, imgDir].filter(Boolean).join('/')
-    return combined.startsWith('/') ? combined : '/' + combined // 最终得到 /blog/images
+    // 在 EditorPage 内部
+  function getMarkdownImagePath(filename: string) {
+    const cleanRoot = config.root.endsWith('/') ? config.root.slice(0, -1) : config.root
+    const cleanImgPrefix = config.imageUrlPrefix.startsWith('/') ? config.imageUrlPrefix.slice(1) : config.imageUrlPrefix
+    return `${cleanRoot}/${cleanImgPrefix}/${filename}`
   }
 
   async function handleInsertImage(source: 'camera' | 'gallery') {
@@ -134,14 +127,19 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         setUploading(false)
         return
       }
+      
       const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      
+      // 1. 将图片加入暂存队列（等待点击保存时再上传）
       setPendingImages(prev => [...prev, { id, base64 }])
       
-      const prefix = getImgPrefix()
-      const markdown = `![image](${prefix}/${id}.jpg)`
+      // 2. 生成正确的 Markdown 路径并插入
+      const imageUrl = getMarkdownImagePath(`${id}.jpg`)
+      const markdown = `![image](${imageUrl})`
       
       editorApi.current?.insert(markdown)
       editorApi.current?.focus()
+      
       toast.show('图片已插入（将在保存时上传）', 'info')
     } catch (e: any) {
       setError(`图片处理失败：${e.message}`)
