@@ -25,20 +25,20 @@ export default function ImageListPage({ config, onBack }: Props) {
     return () => { cancelled = true }
   }, [config])
 
+  // 1. 处理缩略图的代理加载（解决 raw 访问慢/失败）
+  function getProxyUrl(url: string) {
+    return url.replace('https://raw.githubusercontent.com', 'https://ghproxy.net/https://raw.githubusercontent.com')
+  }
+
+  // 2. 同步最新的路径拼接逻辑（使用 config.root）
   function getMarkdownLink(img: ImageItem) {
-    let root = ''
-    try {
-      if (config.pagesBaseUrl) {
-        const u = new URL(config.pagesBaseUrl)
-        root = u.pathname.replace(/\/+$/, '')
-      }
-    } catch {}
-    const imgPrefix = config.imageUrlPrefix.replace(/^\/+|\/+$/g, '')
-    const prefix = [root, imgPrefix].filter(Boolean).join('/')
-    const finalPrefix = prefix.startsWith('/') ? prefix : '/' + prefix
-    
+    const cleanRoot = config.root.endsWith('/') ? config.root.slice(0, -1) : config.root
+    const cleanImgPrefix = config.imageUrlPrefix.startsWith('/') ? config.imageUrlPrefix.slice(1) : config.imageUrlPrefix
     const relPath = img.path.substring(config.imageDir.replace(/\/+$/, '').length)
-    return `![image](${finalPrefix}${relPath})`
+    
+    // 保证路径不会出现多余的斜杠
+    const finalUrl = `${cleanRoot}/${cleanImgPrefix}${relPath}`
+    return `![image](${finalUrl})`
   }
 
   async function handleCopy(img: ImageItem) {
@@ -94,7 +94,13 @@ export default function ImageListPage({ config, onBack }: Props) {
               {imgs.map(img => (
                 <div key={img.path} style={{ position: 'relative', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div onClick={() => handleCopy(img)} title="点击复制 Markdown 链接" style={{ height: 100, background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
-                    <img src={img.url} alt={img.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {/* 👇 这里换成了代理 URL */}
+                    <img 
+                      src={getProxyUrl(img.url)} 
+                      alt={img.name} 
+                      loading="lazy" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
                   </div>
                   <div style={{ padding: '4px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={img.name}>

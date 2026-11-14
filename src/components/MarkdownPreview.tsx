@@ -20,16 +20,32 @@ export default function MarkdownPreview({ config, content, pendingImages = [] }:
     const root = ref.current
     if (!root) return
 
-    // 统一路径处理：去掉末尾的 /
-    const cleanRoot = config.root.endsWith('/') ? config.root.slice(0, -1) : config.root
-    const cleanImgPrefix = config.imageUrlPrefix.startsWith('/') ? config.imageUrlPrefix.slice(1) : config.imageUrlPrefix
-    const cleanImgDir = config.imageDir.replace(/^\/+|\/+$/g, '')
-    
-    // 完整的相对匹配前缀，如 /blog/img/
-    const matchPrefix = `${cleanRoot}/${cleanImgPrefix}/`
+    // 1. 提取纯域名：即使用户填了 https://xxx.github.io/blog，也强行只取 https://xxx.github.io
+    let origin = ''
+    if (config.pagesBaseUrl) {
+      try {
+        origin = new URL(config.pagesBaseUrl).origin
+      } catch {
+        const m = config.pagesBaseUrl.match(/^(https?:\/\/[^/]+)/)
+        if (m) origin = m[1]
+      }
+    }
 
-    // CDN 地址（替代 raw）
-    const jsDelivrBase = `https://cdn.jsdelivr.net/gh/${config.owner}/${config.repo}@${config.branch}/`
+    // 2. 清理路径（去除首尾多余的斜杠）
+    let cleanRoot = config.root.startsWith('/') ? config.root : '/' + config.root
+    if (cleanRoot.endsWith('/')) cleanRoot = cleanRoot.slice(0, -1)
+    
+    let cleanImgPrefix = config.imageUrlPrefix.startsWith('/') ? config.imageUrlPrefix.slice(1) : config.imageUrlPrefix
+    if (cleanImgPrefix.endsWith('/')) cleanImgPrefix = cleanImgPrefix.slice(0, -1)
+    
+    // 组合出匹配前缀：例如 /blog/img/
+    const matchPrefix = `${cleanRoot}/${cleanImgPrefix}/` 
+    
+    // 处理仓库路径
+    const cleanImgDir = config.imageDir.replace(/^\/+|\/+$/g, '')
+
+    // 3. 新的 CDN 降级代理 (ghproxy 代理 raw)
+    const proxyRawBase = `https://ghproxy.net/https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/`
 
     const imgs = root.querySelectorAll<HTMLImageElement>('img')
     const handlers: Array<{ el: HTMLImageElement; fn: () => void }> = []
@@ -38,39 +54,43 @@ export default function MarkdownPreview({ config, content, pendingImages = [] }:
       const src = img.getAttribute('src') || ''
       if (!src) return
 
-      // 1. 本地暂存图
+      // 1. 本地暂存图片
       const pending = pendingImages.find((p: any) => src.includes(p.id))
       if (pending) {
         img.setAttribute('src', `data:image/jpeg;base64,${pending.base64}`)
+        img.removeAttribute('data-cdn-src')
         return
       }
 
-      // 2. 远端图处理
+      // 2. 远端图片处理
       if (!src.startsWith('http') && !src.startsWith('data:')) {
-        // 尝试提取相对路径，比如 /blog/img/post1/a.jpg -> post1/a.jpg
         let relPath = src
+        
+        // 尝试截取真实的相对路径
         if (src.startsWith(matchPrefix)) {
+          // 完美匹配：/blog/img/2025/... 截取为 2025/...
           relPath = src.substring(matchPrefix.length)
-        } else if (src.startsWith('/')) {
-          // 如果不是标准的 root+prefix，兜底去掉开头的 /
-          relPath = src.substring(1)
+        } else {
+          // 容错匹配：如果前缀对不上，直接把 img/ 及其后面的内容截出来
+          const regex = new RegExp(`.*\\/${cleanImgPrefix}\\/`)
+          relPath = src.replace(regex, '')
         }
 
-        // 拼装 CDN 地址
-        const cdnUrl = jsDelivrBase + cleanImgDir + '/' + relPath
+        // 拼装代理 Raw 地址
+        const proxyUrl = proxyRawBase + cleanImgDir + '/' + relPath
         
-        if (config.pagesBaseUrl) {
-          // 优先使用 Hexo 实际部署的 Pages 地址（速度最快）
-          const pagesUrl = `${config.pagesBaseUrl.replace(/\/+$/, '')}${matchPrefix}${relPath}`
+        if (origin) {
+          // 拼装 Pages 真实地址：https://xxx.github.io/blog/img/2025/...
+          const pagesUrl = `${origin}${matchPrefix}${relPath}`
           img.setAttribute('src', pagesUrl)
-          img.setAttribute('data-cdn-src', cdnUrl) // CDN 作为后备
+          img.setAttribute('data-cdn-src', proxyUrl) // 代理作为后备
         } else {
-          // 没填域名，直接用 CDN
-          img.setAttribute('src', cdnUrl)
+          // 没填域名，直接走代理
+          img.setAttribute('src', proxyUrl)
         }
       }
 
-      // 3. Pages 加载失败降级到 CDN
+      // 3. Pages 加载失败降级到 代理 CDN
       const targetCdn = img.getAttribute('data-cdn-src')
       if (targetCdn) {
         const fn = () => {
