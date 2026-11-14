@@ -237,22 +237,24 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
         </div>
       )}
 
-    <div className="mode-bar">
-      <div className="segmented" role="group" aria-label="视图模式">
-        <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>编辑</button>
-        <button aria-pressed={mode === 'preview'} onClick={() => setMode('preview')}>预览</button>
-        {/* 只有大屏才显示分屏 */}
-        {isWideScreen && (
-          <button aria-pressed={mode === 'split'} onClick={() => setMode('split')}>分屏</button>
-        )}
+      <div className="mode-bar">
+        <div className="segmented" role="group" aria-label="视图模式">
+          <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>编辑</button>
+          <button aria-pressed={mode === 'preview'} onClick={() => setMode('preview')}>预览</button>
+          {/* 只有大屏才显示分屏 */}
+          {isWideScreen && (
+            <button aria-pressed={mode === 'split'} onClick={() => setMode('split')}>分屏</button>
+          )}
+        </div>
+          {savedAt && (
+            <span className="mode-bar__status mode-bar__status--saved">已保存</span>
+          )}
+          {draftSavedAt && !savedAt && (
+            <span className="mode-bar__status">草稿已暂存</span>
+          )}
       </div>
-        {savedAt && (
-          <span className="mode-bar__status mode-bar__status--saved">已保存</span>
-        )}
-        {draftSavedAt && !savedAt && (
-          <span className="mode-bar__status">草稿已暂存</span>
-        )}
-      </div>
+      
+      {showToolbar && <MarkdownToolbar api={() => editorApi.current} />}
 
       {error && <div className="editor-error">{error}</div>}
 
@@ -285,8 +287,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
           </div>
         )}
       </div>
-
-      {showToolbar && <MarkdownToolbar api={() => editorApi.current} />}
       
       <KeypadToolbar api={() => editorApi.current} />
       

@@ -47,6 +47,16 @@ jobs:
       - name: Sync web assets to Android
         run: npx cap sync android
 
+      # 👇 新增：准备图标源文件
+      - name: Prepare App Icon
+        run: |
+          mkdir -p assets
+          cp public/capacitor-1024x1024.png assets/icon.png
+
+      # 👇 新增：使用 capacitor-assets 自动生成各尺寸图标
+      - name: Generate App Icons
+        run: npx capacitor-assets generate --android
+
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 

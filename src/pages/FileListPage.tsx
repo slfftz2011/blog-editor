@@ -81,12 +81,45 @@ export default function FileListPage({
   }
 
   async function handleDelete(f: FileItem) {
-    if (!window.confirm(`确定要删除《${f.name}》吗？此操作无法撤销。`)) return
-    setActionLoading(f.path)
+    // 1. 先读一下内容，看看有没有关联图片
     try {
+      const { readFile } = await import('../lib/github')
+      const fileData = await readFile(config, f.path)
+      
+      // 正则匹配本地的图片路径（如 ![](/images/xxx.jpg)）
+      const imgRegex = /!\[.*?\]\((\/images\/[^)]+)\)/g
+      const matches = [...fileData.content.matchAll(imgRegex)]
+      const imagesToDelete = matches.map(m => m[1])
+
+      let confirmMsg = `确定要删除《${f.name}》吗？此操作无法撤销。`
+      let deleteImages = false
+
+      if (imagesToDelete.length > 0) {
+        confirmMsg += `\n\n注意：检测到该文章包含 ${imagesToDelete.length} 张本地图片。\n是否同时删除这些图片？`
+        deleteImages = window.confirm(confirmMsg)
+      } else {
+        if (!window.confirm(confirmMsg)) return
+      }
+
+      setActionLoading(f.path)
+
+      // 2. 删除文章
       await deleteFile(config, f.path, `delete post: ${f.path}`)
+      
+      // 3. 如果用户确认，删除关联图片
+      if (deleteImages && imagesToDelete.length > 0) {
+        for (const imgUrl of imagesToDelete) {
+          const imgPath = config.imageDir.replace(/\/+$/, '') + imgUrl.replace(config.imageUrlPrefix.replace(/\/+$/, ''), '')
+          try {
+            await deleteFile(config, imgPath, `delete image: ${imgPath}`)
+          } catch (e) {
+            console.warn(`删除图片失败: ${imgPath}`, e)
+          }
+        }
+      }
+
       setFiles(prev => prev.filter(item => item.path !== f.path))
-      toast.show('文章已删除', 'success')
+      toast.show(deleteImages ? '文章及关联图片已删除' : '文章已删除', 'success')
     } catch (e: any) {
       toast.show(`删除失败：${e.message}`, 'error')
     } finally {

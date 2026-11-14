@@ -8,8 +8,8 @@ export const defaultConfig: RepoConfig = {
   branch: 'dev',
   token: '',
   postsPath: 'source/_posts',
-  imageDir: 'source/images',
-  imageUrlPrefix: '/images',
+  imageDir: 'source/img',
+  imageUrlPrefix: '/img',
   pagesBaseUrl: '',
 }
 

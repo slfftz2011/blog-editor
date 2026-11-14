@@ -18,11 +18,13 @@
     "markdown-it": "^14.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "vite-plugin-pwa": "^0.21.1",
     "katex": "^0.16.11",
     "mermaid": "^11.4.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.0",
+    "@capacitor/assets": "^3.0.5",
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
