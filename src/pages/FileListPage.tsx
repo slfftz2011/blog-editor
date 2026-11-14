@@ -8,14 +8,14 @@ interface Props {
   config: RepoConfig
   onOpenSettings: () => void
   onOpenDrafts: () => void
+  onOpenImages: () => void // 新增
   onOpenHelp: () => void
   onOpenAbout: () => void
   onOpenFile: (path: string, isNew?: boolean) => void
-  onOpenImages: () => void
 }
 
 export default function FileListPage({
-  config, onOpenSettings, onOpenDrafts, onOpenHelp, onOpenAbout, onOpenFile, onOpenImages
+  config, onOpenSettings, onOpenDrafts, onOpenImages, onOpenHelp, onOpenAbout, onOpenFile,
 }: Props) {
   const toast = useToast()
   const [files, setFiles] = useState<FileItem[]>([])
@@ -23,18 +23,13 @@ export default function FileListPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  
-  // 搜索状态
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    setDraftCount(listDrafts().length)
-  }, [])
+  useEffect(() => { setDraftCount(listDrafts().length) }, [])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    setError(null)
     listMdFiles(config)
       .then(list => !cancelled && setFiles(list))
       .catch(e => !cancelled && setError(e.message))
@@ -42,10 +37,7 @@ export default function FileListPage({
     return () => { cancelled = true }
   }, [config])
 
-  // 过滤后的文件
-  const filteredFiles = files.filter(f => 
-    f.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredFiles = files.filter(f => f.name.toLowerCase().includes(search.toLowerCase()))
 
   function handleNew() {
     const name = window.prompt('文件名（支持包含 . 号）')
@@ -59,7 +51,6 @@ export default function FileListPage({
     const baseName = f.name.endsWith('.md') ? f.name.slice(0, -3) : f.name
     const newName = window.prompt('输入新的文件名', baseName)
     if (!newName || newName.trim() === baseName) return
-    
     const safe = newName.trim().replace(/[\\/:*?"<>|]/g, '-')
     const newFileName = safe.endsWith('.md') ? safe : `${safe}.md`
     if (newFileName === f.name) return
@@ -69,10 +60,7 @@ export default function FileListPage({
       const oldPath = f.path
       const newPath = oldPath.replace(/[^/]+$/, newFileName)
       await renameFile(config, oldPath, newPath, `rename: ${f.name} -> ${newFileName}`)
-      
-      setFiles(prev => prev.map(item => 
-        item.path === oldPath ? { path: newPath, name: newFileName } : item
-      ))
+      setFiles(prev => prev.map(item => item.path === oldPath ? { path: newPath, name: newFileName } : item))
       toast.show('文章已重命名', 'success')
     } catch (e: any) {
       toast.show(`重命名失败：${e.message}`, 'error')
@@ -82,51 +70,12 @@ export default function FileListPage({
   }
 
   async function handleDelete(f: FileItem) {
+    if (!window.confirm(`确定要删除《${f.name}》吗？此操作无法撤销。`)) return
+    setActionLoading(f.path)
     try {
-      const { readFile } = await import('../lib/github')
-      const fileData = await readFile(config, f.path)
-      
-      // 👇 匹配所有非外链的图片路径
-      const imgRegex = /!\[.*?\]\((?![a-z]+:)([^)]+)\)/gi
-      const matches = [...fileData.content.matchAll(imgRegex)]
-      const rawPaths = matches.map(m => m[1].trim())
-      
-      // 👇 只提取文件名，统一拼接到 imageDir 去删除
-      const imagesToDelete = rawPaths
-        .map(p => {
-          const fileName = p.split('/').pop()
-          return fileName ? `${config.imageDir.replace(/\/+$/, '')}/${fileName}` : null
-        })
-        .filter((p): p is string => !!p)
-
-      let confirmMsg = `确定要删除《${f.name}》吗？此操作无法撤销。`
-      let deleteImages = false
-
-      if (imagesToDelete.length > 0) {
-        confirmMsg += `\n\n注意：检测到该文章包含 ${imagesToDelete.length} 张本地图片。\n是否同时删除这些图片？`
-        deleteImages = window.confirm(confirmMsg)
-      } else {
-        if (!window.confirm(confirmMsg)) return
-      }
-
-      setActionLoading(f.path)
-
-      // 删除文章
       await deleteFile(config, f.path, `delete post: ${f.path}`)
-      
-      // 删除关联图片
-      if (deleteImages && imagesToDelete.length > 0) {
-        for (const imgPath of imagesToDelete) {
-          try {
-            await deleteFile(config, imgPath, `delete image: ${imgPath}`)
-          } catch (e) {
-            console.warn(`删除图片失败: ${imgPath}`, e)
-          }
-        }
-      }
-
       setFiles(prev => prev.filter(item => item.path !== f.path))
-      toast.show(deleteImages ? '文章及关联图片已删除' : '文章已删除', 'success')
+      toast.show('文章已删除', 'success')
     } catch (e: any) {
       toast.show(`删除失败：${e.message}`, 'error')
     } finally {
@@ -140,48 +89,28 @@ export default function FileListPage({
         <header className="page-header">
           <div>
             <h1 className="page-title">文章列表</h1>
-            <p className="page-subtitle">
-              {config.owner}/{config.repo} @ {config.branch}
-            </p>
+            <p className="page-subtitle">{config.owner}/{config.repo} @ {config.branch}</p>
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
             <button className="btn btn--primary" onClick={handleNew}>新建</button>
             <button className="btn btn--outline" onClick={onOpenDrafts}>
               草稿箱{draftCount > 0 && <span className="badge badge--accent">{draftCount}</span>}
             </button>
-            <button className="btn btn--outline" onClick={onOpenImages}>
-              🖼️ 资源库
-            </button>
+            <button className="btn btn--outline" onClick={onOpenImages}>🖼️ 资源库</button>
             <button className="btn btn--ghost" onClick={onOpenSettings}>设置</button>
             <button className="btn btn--ghost" onClick={onOpenHelp}>帮助</button>
             <button className="btn btn--ghost" onClick={onOpenAbout}>关于</button>
           </div>
         </header>
 
-        {/* 搜索框 */}
-        <div 
-          className="field" 
-          style={{ 
-            marginTop: 'var(--space-5)',
-            marginBottom: 'var(--space-4)' 
-          }}
-        >
-          <input
-            type="search"
-            className="input"
-            placeholder="搜索文章名称..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className="field" style={{ marginTop: 'var(--space-5)', marginBottom: 'var(--space-4)' }}>
+          <input type="search" className="input" placeholder="搜索文章名称..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         {loading && <p className="text-secondary text-sm">加载中…</p>}
         {error && <div className="alert alert--error">{error}</div>}
-
         {!loading && !error && filteredFiles.length === 0 && (
-          <div className="empty">
-            {search ? '没有匹配的文章' : '没有找到 .md 文件'}
-          </div>
+          <div className="empty">{search ? '没有匹配的文章' : '没有找到 .md 文件'}</div>
         )}
 
         {filteredFiles.length > 0 && (
@@ -191,22 +120,8 @@ export default function FileListPage({
                 <button className="list-item__main" onClick={() => onOpenFile(f.path)}>
                   <div className="list-row__title">{f.name}</div>
                 </button>
-                <button
-                  className="btn btn--icon btn--ghost"
-                  onClick={() => handleRename(f)}
-                  disabled={actionLoading === f.path}
-                  aria-label="重命名"
-                  title="重命名"
-                >
-                  ✏️
-                </button>
-                <button
-                  className="btn btn--icon btn--danger-ghost"
-                  onClick={() => handleDelete(f)}
-                  disabled={actionLoading === f.path}
-                  aria-label="删除"
-                  title="删除"
-                >
+                <button className="btn btn--icon btn--ghost" onClick={() => handleRename(f)} disabled={actionLoading === f.path} aria-label="重命名">✏️</button>
+                <button className="btn btn--icon btn--danger-ghost" onClick={() => handleDelete(f)} disabled={actionLoading === f.path} aria-label="删除">
                   {actionLoading === f.path ? '…' : '✕'}
                 </button>
               </li>

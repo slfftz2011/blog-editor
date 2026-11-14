@@ -9,7 +9,6 @@ import MarkdownPreview from '../components/MarkdownPreview'
 import { MarkdownToolbar, KeypadToolbar } from '../components/EditorToolbar'
 import FrontmatterModal from '../components/FrontmatterModal'
 
-
 interface Props {
   config: RepoConfig
   path: string
@@ -45,8 +44,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const [isWideScreen, setIsWideScreen] = useState(window.innerWidth >= 768)
   const [pendingImages, setPendingImages] = useState<{ id: string, base64: string }[]>([])
 
-
-
   const editorApi = useRef<EditorApi | null>(null)
   const baselineRef = useRef<string | null>(isNew ? NEW_TEMPLATE : null)
   const contentRef = useRef(content)
@@ -58,19 +55,16 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // 当键盘弹起且不是大屏时，强制切换到编辑模式
   useEffect(() => {
     if (isKeyboardOpen && !isWideScreen && mode === 'split') {
       setMode('edit')
     }
   }, [isKeyboardOpen, isWideScreen, mode])
 
-  // 监听手机键盘弹起状态
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
     const onResize = () => {
-      // 如果视口高度比屏幕高度小 200px 以上，说明键盘弹起了
       const isOpen = window.innerHeight - vv.height > 200
       setIsKeyboardOpen(isOpen)
     }
@@ -117,36 +111,18 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     return () => clearTimeout(t)
   }, [content, path, isNew, loading])
 
-  useEffect(() => {
-    function flush() {
-      if (baselineRef.current !== null && contentRef.current !== baselineRef.current) {
-        saveDraft(path, contentRef.current, isNew)
-      }
-    }
-    function onVisibility() {
-      if (document.visibilityState === 'hidden') flush()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('beforeunload', flush)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('beforeunload', flush)
-    }
-  }, [path, isNew])
-
-  // 动态计算带 root 前缀的图片路径
-  function getImageUrlPrefix() {
-    let rootPath = ''
+  // 根据 Setting 里的 Pages 地址自动生成 root 前缀
+  function getImgPrefix() {
+    let root = ''
     try {
       if (config.pagesBaseUrl) {
         const url = new URL(config.pagesBaseUrl)
-        rootPath = url.pathname.replace(/\/+$/, '') // 提取如 '/blog'
+        root = url.pathname.replace(/\/+$/, '') // 提取出 /blog
       }
     } catch {}
-    
-    const imgPrefix = config.imageUrlPrefix.replace(/^\/+/, '').replace(/\/+$/, '') // 提取如 'img'
-    const combined = [rootPath, imgPrefix].filter(Boolean).join('/')
-    return combined.startsWith('/') ? combined : '/' + combined
+    const imgDir = config.imageUrlPrefix.replace(/^\/+|\/+$/g, '') // 提取出 images
+    const combined = [root, imgDir].filter(Boolean).join('/')
+    return combined.startsWith('/') ? combined : '/' + combined // 最终得到 /blog/images
   }
 
   async function handleInsertImage(source: 'camera' | 'gallery') {
@@ -161,8 +137,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
       const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
       setPendingImages(prev => [...prev, { id, base64 }])
       
-      // 👇 使用动态计算的路径前缀
-      const prefix = getImageUrlPrefix()
+      const prefix = getImgPrefix()
       const markdown = `![image](${prefix}/${id}.jpg)`
       
       editorApi.current?.insert(markdown)
@@ -176,12 +151,10 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     }
   }
 
-  // 修改 handleSave
   async function handleSave() {
     setSaving(true)
     setError(null)
     try {
-      // 1. 如果有暂存的图片，先上传
       let finalContent = content
       if (pendingImages.length > 0) {
         toast.show('正在上传图片...', 'info')
@@ -189,10 +162,9 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
           const imagePath = `${config.imageDir.replace(/\/+$/, '')}/${img.id}.jpg`
           await uploadBinaryFile(config, imagePath, img.base64, `upload image: ${img.id}.jpg`)
         }
-        setPendingImages([]) // 清空暂存
+        setPendingImages([])
       }
 
-      // 2. 上传文章
       const message = isNew ? `new post: ${path}` : `update: ${path}`
       await writeFile(config, path, finalContent, message, sha)
       const fresh = await readFile(config, path)
@@ -211,51 +183,20 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     }
   }
 
-  function restoreDraft() {
-    if (!draftPrompt) return
-    setContent(draftPrompt.content)
-    setDraftPrompt(null)
-    toast.show('已恢复草稿', 'info')
-  }
-
-  function discardDraft() {
-    if (!draftPrompt) return
-    clearDraft(path)
-    setDraftPrompt(null)
-    setDraftSavedAt(null)
-    toast.show('已丢弃草稿', 'info')
-  }
-
-  if (loading) {
-    return (
-      <div className="editor-shell">
-        <div className="empty">加载中…</div>
-      </div>
-    )
-  }
+  if (loading) return <div className="editor-shell"><div className="empty">加载中…</div></div>
 
   const showToolbar = mode !== 'preview'
 
   return (
     <div className="editor-shell">
-    <div className="editor-header">
-      <button className="btn btn--ghost" onClick={onBack}>返回</button>
-      <span className="editor-path">{path}</span>
-      
-      <button className="btn btn--outline" onClick={() => setShowMeta(true)}>
-        ⚙️ 属性
-      </button>
-
-      <button className="btn btn--outline" onClick={() => handleInsertImage('camera')} disabled={uploading}>
-        {uploading ? '处理中…' : '拍照'}
-      </button>
-        <button
-          className="btn btn--outline"
-          onClick={() => handleInsertImage('gallery')}
-          disabled={uploading}
-        >
-          相册
+      <div className="editor-header">
+        <button className="btn btn--ghost" onClick={onBack}>返回</button>
+        <span className="editor-path">{path}</span>
+        <button className="btn btn--outline" onClick={() => setShowMeta(true)}>⚙️ 属性</button>
+        <button className="btn btn--outline" onClick={() => handleInsertImage('camera')} disabled={uploading}>
+          {uploading ? '处理中…' : '拍照'}
         </button>
+        <button className="btn btn--outline" onClick={() => handleInsertImage('gallery')} disabled={uploading}>相册</button>
         <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
           {saving ? '保存中…' : '保存'}
         </button>
@@ -263,55 +204,33 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
 
       {draftPrompt && (
         <div className="draft-prompt">
-          <span className="draft-prompt__text">
-            发现 {formatRelative(draftPrompt.savedAt)} 的草稿
-          </span>
-          <button className="btn btn--primary" onClick={restoreDraft}>恢复</button>
-          <button className="btn btn--outline" onClick={discardDraft}>丢弃</button>
+          <span className="draft-prompt__text">发现 {formatRelative(draftPrompt.savedAt)} 的草稿</span>
+          <button className="btn btn--primary" onClick={() => { setContent(draftPrompt.content); setDraftPrompt(null) }}>恢复</button>
+          <button className="btn btn--outline" onClick={() => { clearDraft(path); setDraftPrompt(null); setDraftSavedAt(null) }}>丢弃</button>
         </div>
       )}
 
       <div className="mode-bar">
-        <div className="segmented" role="group" aria-label="视图模式">
+        <div className="segmented" role="group">
           <button aria-pressed={mode === 'edit'} onClick={() => setMode('edit')}>编辑</button>
           <button aria-pressed={mode === 'preview'} onClick={() => setMode('preview')}>预览</button>
-          {/* 只有大屏才显示分屏 */}
-          {isWideScreen && (
-            <button aria-pressed={mode === 'split'} onClick={() => setMode('split')}>分屏</button>
-          )}
+          {isWideScreen && <button aria-pressed={mode === 'split'} onClick={() => setMode('split')}>分屏</button>}
         </div>
-          {savedAt && (
-            <span className="mode-bar__status mode-bar__status--saved">已保存</span>
-          )}
-          {draftSavedAt && !savedAt && (
-            <span className="mode-bar__status">草稿已暂存</span>
-          )}
+        {savedAt && <span className="mode-bar__status mode-bar__status--saved">已保存</span>}
+        {draftSavedAt && !savedAt && <span className="mode-bar__status">草稿已暂存</span>}
       </div>
-      
-      {showToolbar && <MarkdownToolbar api={() => editorApi.current} />}
 
+      {showToolbar && <MarkdownToolbar api={() => editorApi.current} />}
       {error && <div className="editor-error">{error}</div>}
 
-      {/* 主体区域 */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {mode === 'edit' && (
-          <MarkdownEditor
-            value={content}
-            onChange={setContent}
-            onReady={api => (editorApi.current = api)}
-          />
-        )}
+        {mode === 'edit' && <MarkdownEditor value={content} onChange={setContent} onReady={api => (editorApi.current = api)} />}
         {mode === 'preview' && <MarkdownPreview config={config} content={content} pendingImages={pendingImages} />}
         {mode === 'split' && (
           <div className="split-container">
             <div className="split-pane">
-              <MarkdownEditor
-                value={content}
-                onChange={setContent}
-                onReady={api => (editorApi.current = api)}
-              />
+              <MarkdownEditor value={content} onChange={setContent} onReady={api => (editorApi.current = api)} />
             </div>
-            {/* 键盘弹起时隐藏下半部分的预览，保证输入空间 */}
             {!isKeyboardOpen && (
               <div className="split-pane">
                 <MarkdownPreview config={config} content={content} pendingImages={pendingImages} />
@@ -324,9 +243,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
       <KeypadToolbar api={() => editorApi.current} />
       
       <FrontmatterModal 
-        isOpen={showMeta}
-        content={content}
-        onClose={() => setShowMeta(false)}
+        isOpen={showMeta} content={content} onClose={() => setShowMeta(false)}
         onSave={(newContent) => { setContent(newContent); toast.show('属性已更新', 'info') }}
       />
     </div>

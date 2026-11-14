@@ -25,21 +25,18 @@ export default function ImageListPage({ config, onBack }: Props) {
     return () => { cancelled = true }
   }, [config])
 
-  // 获取 Markdown 插入路径
   function getMarkdownLink(img: ImageItem) {
-    let rootPath = ''
+    let root = ''
     try {
       if (config.pagesBaseUrl) {
         const u = new URL(config.pagesBaseUrl)
-        rootPath = u.pathname.replace(/\/+$/, '')
+        root = u.pathname.replace(/\/+$/, '')
       }
     } catch {}
-    
-    const imgPrefix = config.imageUrlPrefix.replace(/^\/+/, '').replace(/\/+$/, '')
-    const prefix = [rootPath, imgPrefix].filter(Boolean).join('/')
+    const imgPrefix = config.imageUrlPrefix.replace(/^\/+|\/+$/g, '')
+    const prefix = [root, imgPrefix].filter(Boolean).join('/')
     const finalPrefix = prefix.startsWith('/') ? prefix : '/' + prefix
     
-    // 提取相对路径部分（包含子文件夹）
     const relPath = img.path.substring(config.imageDir.replace(/\/+$/, '').length)
     return `![image](${finalPrefix}${relPath})`
   }
@@ -68,7 +65,6 @@ export default function ImageListPage({ config, onBack }: Props) {
     }
   }
 
-  // 按 folder 分组
   const grouped = images.reduce((acc, img) => {
     if (!acc[img.folder]) acc[img.folder] = []
     acc[img.folder].push(img)
@@ -81,15 +77,12 @@ export default function ImageListPage({ config, onBack }: Props) {
         <header className="page-header page-header--back">
           <button className="btn btn--icon" onClick={onBack}>←</button>
           <h1 className="page-title" style={{ flex: 1 }}>资源库</h1>
-          <span className="badge">{images.length} 张图片</span>
+          <span className="badge">{images.length} 张</span>
         </header>
 
         {loading && <p className="text-secondary text-sm">正在扫描图片...</p>}
         {error && <div className="alert alert--error">{error}</div>}
-
-        {!loading && !error && images.length === 0 && (
-          <div className="empty">没有找到图片</div>
-        )}
+        {!loading && !error && images.length === 0 && <div className="empty">没有找到图片</div>}
 
         {Object.entries(grouped).map(([folder, imgs]) => (
           <div key={folder} style={{ marginBottom: 'var(--space-6)' }}>
@@ -97,49 +90,17 @@ export default function ImageListPage({ config, onBack }: Props) {
               📁 {folder === '根目录' ? '根目录' : folder} ({imgs.length})
             </h3>
             
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', 
-              gap: 'var(--space-3)' 
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-3)' }}>
               {imgs.map(img => (
-                <div key={img.path} style={{
-                  position: 'relative', background: 'var(--surface)', 
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', 
-                  overflow: 'hidden', display: 'flex', flexDirection: 'column'
-                }}>
-                  {/* 缩略图 */}
-                  <div 
-                    onClick={() => handleCopy(img)}
-                    title="点击复制 Markdown 链接"
-                    style={{ 
-                      height: 100, background: 'var(--surface-hover)', 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', overflow: 'hidden'
-                    }}
-                  >
-                    <img 
-                      src={img.url} 
-                      alt={img.name} 
-                      loading="lazy"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    />
+                <div key={img.path} style={{ position: 'relative', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div onClick={() => handleCopy(img)} title="点击复制 Markdown 链接" style={{ height: 100, background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
+                    <img src={img.url} alt={img.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
-                  
-                  {/* 底部信息 */}
-                  <div style={{ 
-                    padding: '4px 6px', display: 'flex', alignItems: 'center', 
-                    justifyContent: 'space-between', borderTop: '1px solid var(--border)'
-                  }}>
+                  <div style={{ padding: '4px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={img.name}>
                       {img.name}
                     </span>
-                    <button 
-                      onClick={() => handleDelete(img)}
-                      disabled={deleting === img.path}
-                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 2, fontSize: 12 }}
-                      title="删除图片"
-                    >
+                    <button onClick={() => handleDelete(img)} disabled={deleting === img.path} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 2, fontSize: 12 }} title="删除图片">
                       {deleting === img.path ? '…' : '✕'}
                     </button>
                   </div>

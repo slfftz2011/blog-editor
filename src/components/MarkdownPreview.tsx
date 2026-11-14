@@ -24,34 +24,25 @@ export default function MarkdownPreview({ config, content, pendingImages = [] }:
     const rawBase = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/`
 
     const imgs = root.querySelectorAll<HTMLImageElement>('img')
-    const handlers: Array<{ el: HTMLImageElement; fn: () => void }> = []
-
     imgs.forEach(img => {
       const src = img.getAttribute('src') || ''
-
-      // 1. 本地待上传的图片
-      const pending = pendingImages.find(p => src.includes(p.id))
+      
+      // 1. 优先处理本地暂存
+      const pending = pendingImages.find((p: any) => src.includes(p.id))
       if (pending) {
         img.setAttribute('src', `data:image/jpeg;base64,${pending.base64}`)
         return
       }
 
-      // 2. 远端图片
+      // 2. 远程获取：只要不是 http 开头，直接截取文件名去 raw 拿
       if (src && !src.startsWith('http') && !src.startsWith('data:')) {
-        // 不论前缀是 /images 还是 /blog/images，只拿最后的文件名
         const fileName = src.split('/').pop() || ''
         if (!fileName) return
-
-        // 直接拼装 GitHub Raw 地址（Raw 始终能访问真实文件）
-        const rawUrl = rawBase + imageDir + fileName
-        img.setAttribute('src', rawUrl)
+        img.setAttribute('src', rawBase + imageDir + fileName)
       }
     })
-
-    return () => handlers.forEach(({ el, fn }) => el.removeEventListener('error', fn))
   }, [html, config, pendingImages])
-  
-  // Mermaid 渲染
+
   useEffect(() => {
     const root = ref.current
     if (!root) return
