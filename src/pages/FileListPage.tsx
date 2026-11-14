@@ -86,11 +86,16 @@ export default function FileListPage({
       const { readFile } = await import('../lib/github')
       const fileData = await readFile(config, f.path)
       
-      // 正则匹配本地的图片路径（如 ![](/images/xxx.jpg)）
-      const imgRegex = /!\[.*?\]\((\/images\/[^)]+)\)/g
+      // 匹配所有 ![](...)，不限制必须是以 /images/ 开头
+      const imgRegex = /!\[.*?\]\((?!http)(.*?)\)/g
       const matches = [...fileData.content.matchAll(imgRegex)]
-      const imagesToDelete = matches.map(m => m[1])
-
+      
+      const imagesToDelete = matches
+        .map(m => m[1].trim())
+        .filter(path => path !== '') // 过滤空路径
+        // 过滤掉可能存在的 data: base64 图片
+        .filter(path => !path.startsWith('data:'))
+        
       let confirmMsg = `确定要删除《${f.name}》吗？此操作无法撤销。`
       let deleteImages = false
 

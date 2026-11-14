@@ -43,6 +43,9 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const [showMeta, setShowMeta] = useState(false)
   const [isWideScreen, setIsWideScreen] = useState(window.innerWidth >= 768)
+  const [pendingImages, setPendingImages] = useState<{ id: string, base64: string }[]>([])
+
+
 
   const editorApi = useRef<EditorApi | null>(null)
   const baselineRef = useRef<string | null>(isNew ? NEW_TEMPLATE : null)
@@ -131,15 +134,55 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     }
   }, [path, isNew])
 
+  // 修改 handleInsertImage
+  async function handleInsertImage(source: 'camera' | 'gallery') {
+    setError(null)
+    setUploading(true)
+    try {
+      const base64 = await pickImage(source)
+      if (!base64) {
+        setUploading(false)
+        return
+      }
+      const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      // 暂存起来，并生成一个本地 data URI 用于临时预览
+      setPendingImages(prev => [...prev, { id, base64 }])
+      
+      // 插入 Markdown 占位
+      const markdown = `![image](/images/${id}.jpg)`
+      editorApi.current?.insert(markdown)
+      editorApi.current?.focus()
+      toast.show('图片已插入（将在保存时上传）', 'info')
+    } catch (e: any) {
+      setError(`图片处理失败：${e.message}`)
+      toast.show(`图片处理失败：${e.message}`, 'error')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // 修改 handleSave
   async function handleSave() {
     setSaving(true)
     setError(null)
     try {
+      // 1. 如果有暂存的图片，先上传
+      let finalContent = content
+      if (pendingImages.length > 0) {
+        toast.show('正在上传图片...', 'info')
+        for (const img of pendingImages) {
+          const imagePath = `${config.imageDir.replace(/\/+$/, '')}/${img.id}.jpg`
+          await uploadBinaryFile(config, imagePath, img.base64, `upload image: ${img.id}.jpg`)
+        }
+        setPendingImages([]) // 清空暂存
+      }
+
+      // 2. 上传文章
       const message = isNew ? `new post: ${path}` : `update: ${path}`
-      await writeFile(config, path, content, message, sha)
+      await writeFile(config, path, finalContent, message, sha)
       const fresh = await readFile(config, path)
       setSha(fresh.sha)
-      baselineRef.current = content
+      baselineRef.current = finalContent
       clearDraft(path)
       setDraftSavedAt(null)
       setSavedAt(Date.now())
@@ -150,30 +193,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
       toast.show(`保存失败：${e.message}`, 'error')
     } finally {
       setSaving(false)
-    }
-  }
-
-  async function handleInsertImage(source: 'camera' | 'gallery') {
-    setError(null)
-    setUploading(true)
-    try {
-      const base64 = await pickImage(source)
-      if (!base64) {
-        setUploading(false)
-        return
-      }
-      const fileName = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
-      const imagePath = `${config.imageDir.replace(/\/+$/, '')}/${fileName}`
-      await uploadBinaryFile(config, imagePath, base64, `upload image: ${fileName}`)
-      const markdown = `![image](${config.imageUrlPrefix.replace(/\/+$/, '')}/${fileName})`
-      editorApi.current?.insert(markdown)
-      editorApi.current?.focus()
-      toast.show('图片已上传并插入', 'success')
-    } catch (e: any) {
-      setError(`图片上传失败：${e.message}`)
-      toast.show(`图片上传失败：${e.message}`, 'error')
-    } finally {
-      setUploading(false)
     }
   }
 
@@ -267,8 +286,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
             onReady={api => (editorApi.current = api)}
           />
         )}
-        {mode === 'preview' && <MarkdownPreview config={config} content={content} />}
-        
+        {mode === 'preview' && <MarkdownPreview config={config} content={content} pendingImages={pendingImages} />}
         {mode === 'split' && (
           <div className="split-container">
             <div className="split-pane">
@@ -281,7 +299,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
             {/* 键盘弹起时隐藏下半部分的预览，保证输入空间 */}
             {!isKeyboardOpen && (
               <div className="split-pane">
-                <MarkdownPreview config={config} content={content} />
+                <MarkdownPreview config={config} content={content} pendingImages={pendingImages} />
               </div>
             )}
           </div>

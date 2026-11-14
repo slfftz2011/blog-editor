@@ -10,6 +10,7 @@ let mermaidCounter = 0
 interface Props {
   config: RepoConfig
   content: string
+  pendingImages?: { id: string, base64: string }[]
 }
 
 function escapeHtml(s: string) {
@@ -40,13 +41,32 @@ export default function MarkdownPreview({ config, content }: Props) {
 
     imgs.forEach(img => {
       const src = img.getAttribute('src') || ''
-      let rawUrl = ''
+      
+      // 1. 优先检查是不是暂存图片
+      const pendingImg = pendingImages?.find(p => src.includes(p.id))
+      if (pendingImg) {
+        img.setAttribute('src', `data:image/jpeg;base64,${pendingImg.base64}`)
+        return // 跳过后续网络请求
+      }
 
-      if (src.startsWith(imagePrefix)) {
-        const fileName = src.substring(imagePrefix.length)
-        rawUrl = rawBase + imageDir + fileName
+      // 2. 处理正常的远端图片
+      if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+        // 规范化路径：去掉开头的 ./ 或 /
+        const cleanSrc = src.replace(/^\.?\//, '')
+        
+        // 如果是以 imageDir 的目录名开头（例如 images/xxx.jpg）
+        // 或者如果配置了 imageUrlPrefix 并且匹配
+        let fileName = cleanSrc
+        if (cleanSrc.startsWith('images/')) {
+           fileName = cleanSrc.replace('images/', '')
+        } else if (cleanSrc.startsWith(imageDir)) {
+           fileName = cleanSrc.replace(imageDir, '')
+        }
+
+        // 拼装 Raw URL
+        const rawUrl = rawBase + imageDir + fileName
         if (pagesBase) {
-          img.setAttribute('src', pagesBase + imagePrefix + fileName)
+          img.setAttribute('src', pagesBase + '/' + imageDir + fileName)
           img.setAttribute('data-raw-src', rawUrl)
         } else {
           img.setAttribute('src', rawUrl)
