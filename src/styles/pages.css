@@ -294,3 +294,20 @@
     color: var(--danger);
     flex-shrink: 0;
   }
+
+  /* 页面淡入动画 */
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out;
+  height: 100%;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

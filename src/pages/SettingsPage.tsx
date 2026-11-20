@@ -3,6 +3,8 @@ import type { RepoConfig } from '../types'
 import { saveConfig, defaultConfig } from '../lib/storage'
 import { testConnection, fetchHexoRoot } from '../lib/github'
 import { useTheme } from '../lib/theme'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBookOpen } from '@fortawesome/free-solid-svg-icons'
 
 interface Props {
   initial: RepoConfig | null
@@ -65,7 +67,9 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
       <div className="content-col">
         <header className="settings-header">
           <h1 className="settings-title">仓库配置</h1>
-          {onHelp && <button className="btn btn--ghost" onClick={onHelp}>📖 使用教程</button>}
+          <button className="btn btn--ghost" onClick={onHelp}>
+            <FontAwesomeIcon icon={faBookOpen} style={{ marginRight: 6 }} /> 使用教程
+          </button>
         </header>
 
         {/* 外观 */}

@@ -75,8 +75,8 @@ export default function ImageListPage({ config, onBack }: Props) {
     <div className="page">
       <div className="content-col">
         <header className="page-header page-header--back">
-          <button className="btn btn--icon" onClick={onBack}>←</button>
           <h1 className="page-title" style={{ flex: 1 }}>资源库</h1>
+          <button className="btn btn--ghost" onClick={onBack}>返回</button>
           <span className="badge">{images.length} 张</span>
         </header>
 

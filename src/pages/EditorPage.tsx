@@ -8,6 +8,8 @@ import MarkdownEditor, { EditorApi } from '../components/MarkdownEditor'
 import MarkdownPreview from '../components/MarkdownPreview'
 import { MarkdownToolbar, KeypadToolbar } from '../components/EditorToolbar'
 import FrontmatterModal from '../components/FrontmatterModal'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faSliders, faCamera, faImages, faFloppyDisk, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 
 interface Props {
   config: RepoConfig
@@ -187,18 +189,22 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
 
   return (
     <div className="editor-shell">
-      <div className="editor-header">
-        <button className="btn btn--ghost" onClick={onBack}>返回</button>
-        <span className="editor-path">{path}</span>
-        <button className="btn btn--outline" onClick={() => setShowMeta(true)}>⚙️ 属性</button>
-        <button className="btn btn--outline" onClick={() => handleInsertImage('camera')} disabled={uploading}>
-          {uploading ? '处理中…' : '拍照'}
-        </button>
-        <button className="btn btn--outline" onClick={() => handleInsertImage('gallery')} disabled={uploading}>相册</button>
-        <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
-          {saving ? '保存中…' : '保存'}
-        </button>
-      </div>
+      <button className="btn btn--ghost" onClick={onBack}>
+        <FontAwesomeIcon icon={faArrowLeft} />
+      </button>
+      ...
+      <button className="btn btn--outline" onClick={() => setShowMeta(true)}>
+        <FontAwesomeIcon icon={faSliders} /> 属性
+      </button>
+      <button className="btn btn--outline" onClick={() => handleInsertImage('camera')} disabled={uploading}>
+        <FontAwesomeIcon icon={faCamera} /> {uploading ? '处理中…' : '拍照'}
+      </button>
+      <button className="btn btn--outline" onClick={() => handleInsertImage('gallery')} disabled={uploading}>
+        <FontAwesomeIcon icon={faImages} /> 相册
+      </button>
+      <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
+        <FontAwesomeIcon icon={faFloppyDisk} /> {saving ? '保存中…' : '保存'}
+      </button>
 
       {draftPrompt && (
         <div className="draft-prompt">

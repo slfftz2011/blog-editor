@@ -3,12 +3,17 @@ import type { RepoConfig, FileItem } from '../types'
 import { listMdFiles, deleteFile, renameFile } from '../lib/github'
 import { listDrafts } from '../lib/draft'
 import { useToast } from '../lib/toast'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { 
+  faImage, faPen, faXmark, faGear, 
+  faCircleInfo, faCircleQuestion, faPlus 
+} from '@fortawesome/free-solid-svg-icons'
 
 interface Props {
   config: RepoConfig
   onOpenSettings: () => void
   onOpenDrafts: () => void
-  onOpenImages: () => void // 新增
+  onOpenImages: () => void
   onOpenHelp: () => void
   onOpenAbout: () => void
   onOpenFile: (path: string, isNew?: boolean) => void
@@ -25,11 +30,14 @@ export default function FileListPage({
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  useEffect(() => { setDraftCount(listDrafts().length) }, [])
+  useEffect(() => {
+    setDraftCount(listDrafts().length)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setError(null)
     listMdFiles(config)
       .then(list => !cancelled && setFiles(list))
       .catch(e => !cancelled && setError(e.message))
@@ -37,7 +45,9 @@ export default function FileListPage({
     return () => { cancelled = true }
   }, [config])
 
-  const filteredFiles = files.filter(f => f.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredFiles = files.filter(f => 
+    f.name.toLowerCase().includes(search.toLowerCase())
+  )
 
   function handleNew() {
     const name = window.prompt('文件名（支持包含 . 号）')
@@ -51,6 +61,7 @@ export default function FileListPage({
     const baseName = f.name.endsWith('.md') ? f.name.slice(0, -3) : f.name
     const newName = window.prompt('输入新的文件名', baseName)
     if (!newName || newName.trim() === baseName) return
+    
     const safe = newName.trim().replace(/[\\/:*?"<>|]/g, '-')
     const newFileName = safe.endsWith('.md') ? safe : `${safe}.md`
     if (newFileName === f.name) return
@@ -60,7 +71,10 @@ export default function FileListPage({
       const oldPath = f.path
       const newPath = oldPath.replace(/[^/]+$/, newFileName)
       await renameFile(config, oldPath, newPath, `rename: ${f.name} -> ${newFileName}`)
-      setFiles(prev => prev.map(item => item.path === oldPath ? { path: newPath, name: newFileName } : item))
+      
+      setFiles(prev => prev.map(item => 
+        item.path === oldPath ? { path: newPath, name: newFileName } : item
+      ))
       toast.show('文章已重命名', 'success')
     } catch (e: any) {
       toast.show(`重命名失败：${e.message}`, 'error')
@@ -92,23 +106,40 @@ export default function FileListPage({
             <p className="page-subtitle">{config.owner}/{config.repo} @ {config.branch}</p>
           </div>
           <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-            <button className="btn btn--primary" onClick={handleNew}>新建</button>
+            <button className="btn btn--primary" onClick={handleNew}>
+              <FontAwesomeIcon icon={faPlus} style={{ marginRight: 6 }} /> 新建
+            </button>
             <button className="btn btn--outline" onClick={onOpenDrafts}>
               草稿箱{draftCount > 0 && <span className="badge badge--accent">{draftCount}</span>}
             </button>
-            <button className="btn btn--outline" onClick={onOpenImages}>🖼️ 资源库</button>
-            <button className="btn btn--ghost" onClick={onOpenSettings}>设置</button>
-            <button className="btn btn--ghost" onClick={onOpenHelp}>帮助</button>
-            <button className="btn btn--ghost" onClick={onOpenAbout}>关于</button>
+            <button className="btn btn--outline" onClick={onOpenImages}>
+              <FontAwesomeIcon icon={faImage} style={{ marginRight: 6 }} /> 资源库
+            </button>
+            <button className="btn btn--ghost" onClick={onOpenSettings}>
+              <FontAwesomeIcon icon={faGear} style={{ marginRight: 6 }} /> 设置
+            </button>
+            <button className="btn btn--ghost" onClick={onOpenHelp}>
+              <FontAwesomeIcon icon={faCircleQuestion} style={{ marginRight: 6 }} /> 帮助
+            </button>
+            <button className="btn btn--ghost" onClick={onOpenAbout}>
+              <FontAwesomeIcon icon={faCircleInfo} style={{ marginRight: 6 }} /> 关于
+            </button>
           </div>
         </header>
 
         <div className="field" style={{ marginTop: 'var(--space-5)', marginBottom: 'var(--space-4)' }}>
-          <input type="search" className="input" placeholder="搜索文章名称..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input 
+            type="search" 
+            className="input" 
+            placeholder="搜索文章名称..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+          />
         </div>
 
         {loading && <p className="text-secondary text-sm">加载中…</p>}
         {error && <div className="alert alert--error">{error}</div>}
+        
         {!loading && !error && filteredFiles.length === 0 && (
           <div className="empty">{search ? '没有匹配的文章' : '没有找到 .md 文件'}</div>
         )}
@@ -120,9 +151,23 @@ export default function FileListPage({
                 <button className="list-item__main" onClick={() => onOpenFile(f.path)}>
                   <div className="list-row__title">{f.name}</div>
                 </button>
-                <button className="btn btn--icon btn--ghost" onClick={() => handleRename(f)} disabled={actionLoading === f.path} aria-label="重命名">✏️</button>
-                <button className="btn btn--icon btn--danger-ghost" onClick={() => handleDelete(f)} disabled={actionLoading === f.path} aria-label="删除">
-                  {actionLoading === f.path ? '…' : '✕'}
+                <button
+                  className="btn btn--icon btn--ghost"
+                  onClick={() => handleRename(f)}
+                  disabled={actionLoading === f.path}
+                  aria-label="重命名"
+                  title="重命名"
+                >
+                  <FontAwesomeIcon icon={faPen} />
+                </button>
+                <button
+                  className="btn btn--icon btn--danger-ghost"
+                  onClick={() => handleDelete(f)}
+                  disabled={actionLoading === f.path}
+                  aria-label="删除"
+                  title="删除"
+                >
+                  {actionLoading === f.path ? '…' : <FontAwesomeIcon icon={faXmark} />}
                 </button>
               </li>
             ))}

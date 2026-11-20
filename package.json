@@ -14,6 +14,10 @@
     "@capacitor/camera": "^6.1.2",
     "@capacitor/core": "^6.2.0",
     "@codemirror/lang-markdown": "^6.3.1",
+    "@fortawesome/fontawesome-svg-core": "^6.5.1",
+    "@fortawesome/free-solid-svg-icons": "^6.5.1",
+    "@fortawesome/free-brands-svg-icons": "^6.5.1",
+    "@fortawesome/react-fontawesome": "^0.2.0",
     "codemirror": "^6.0.1",
     "markdown-it": "^14.1.0",
     "react": "^18.3.1",
@@ -28,8 +32,8 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.3",
     "vite-plugin-pwa": "^0.21.1",
-    "typescript": "^5.6.3",
-    "vite": "^6.0.3"
+    "typescript": "^5.6.3"
   }
 }
