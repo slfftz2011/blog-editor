@@ -44,10 +44,8 @@ export default function AboutPage({ onBack }: Props) {
     <div className="page">
       <div className="content-col">
         <header className="page-header page-header--back">
-          <button className="btn btn--icon btn--ghost" onClick={onBack} aria-label="返回">
-            <FontAwesomeIcon icon={faArrowLeft} />
-          </button>
           <h1 className="page-title" style={{ flex: 1 }}>关于</h1>
+          <button className="btn btn--ghost" onClick={onBack}>返回</button>
         </header>
 
         <div className="card">

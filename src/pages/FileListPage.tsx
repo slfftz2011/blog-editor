@@ -5,7 +5,7 @@ import { listDrafts } from '../lib/draft'
 import { useToast } from '../lib/toast'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
-  faImage, faPen, faXmark, faGear, 
+  faFilePen, faImage, faPen, faXmark, faGear, 
   faCircleInfo, faCircleQuestion, faPlus 
 } from '@fortawesome/free-solid-svg-icons'
 
@@ -110,7 +110,7 @@ export default function FileListPage({
               <FontAwesomeIcon icon={faPlus} style={{ marginRight: 6 }} /> 新建
             </button>
             <button className="btn btn--outline" onClick={onOpenDrafts}>
-              草稿箱{draftCount > 0 && <span className="badge badge--accent">{draftCount}</span>}
+              <FontAwesomeIcon icon={faFilePen} style={{ marginRight: 6 }} /> 草稿箱
             </button>
             <button className="btn btn--outline" onClick={onOpenImages}>
               <FontAwesomeIcon icon={faImage} style={{ marginRight: 6 }} /> 资源库
