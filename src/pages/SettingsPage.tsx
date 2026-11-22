@@ -11,9 +11,12 @@ interface Props {
   onSaved: (cfg: RepoConfig) => void
   onCancel?: () => void
   onHelp?: () => void
+  onOpenCreateRepo: () => void
+
 }
 
-export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Props) {
+
+export default function SettingsPage({ initial, onSaved, onCancel, onHelp, onOpenCreateRepo }: Props) {
   const [cfg, setCfg] = useState<RepoConfig>(initial ?? defaultConfig)
   const [testing, setTesting] = useState(false)
   const [fetchingConfig, setFetchingConfig] = useState(false)
@@ -73,6 +76,19 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
             </button>
           )}
         </header>
+
+        <div style={{
+          marginBottom: 'var(--space-5)', padding: 'var(--space-4)',
+          background: 'var(--accent-soft)', borderRadius: 'var(--radius)',
+        }}>
+          <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-base)' }}>还没有仓库？</h3>
+          <p className="text-secondary text-sm" style={{ margin: '0 0 var(--space-3)' }}>
+            一键创建标准的 Hexo 博客，自动配置分支与工作流。
+          </p>
+          <button className="btn btn--primary" onClick={onOpenCreateRepo}>
+            一键建站
+          </button>
+        </div>
 
         {/* 外观 */}
         <section className="settings-group">
