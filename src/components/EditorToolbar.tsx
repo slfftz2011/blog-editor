@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { isPocketEdition } from '../lib/platform'
 import { LATEX_SYMBOLS, EXTRA_SYMBOLS } from '../lib/symbols'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { 
+  faBold, faItalic, faStrikethrough, faCode, faHeading, 
+  faQuoteLeft, faListUl, faListOl, faLink, faCodeBranch, 
+  faSquareRootVariable, faTable, faMinus, faShareNodes 
+} from '@fortawesome/free-solid-svg-icons'
 
 export interface ToolbarApi {
   insert: (text: string) => void
@@ -16,27 +22,27 @@ interface Props {
 }
 
 interface Action {
-  label: string
+  label: React.ReactNode
   title: string
   variant?: 'bold' | 'italic' | 'mono'
   run: (api: ToolbarApi) => void
 }
 
 const ACTIONS: Action[] = [
-  { label: 'B', title: '加粗', variant: 'bold', run: a => a.wrap('**', '**', '粗体') },
-  { label: 'I', title: '斜体', variant: 'italic', run: a => a.wrap('*', '*', '斜体') },
-  { label: 'S', title: '删除线', run: a => a.wrap('~~', '~~', '删除线') },
-  { label: '`', title: '行内代码', variant: 'mono', run: a => a.wrap('`', '`', 'code') },
-  { label: 'H', title: '标题递增', run: a => a.toggleHeading() },
-  { label: '❝', title: '引用', run: a => a.insert('\n> ') },
-  { label: '•', title: '无序列表', run: a => a.insert('\n- ') },
-  { label: '1.', title: '有序列表', variant: 'mono', run: a => a.insert('\n1. ') },
-  { label: '🔗', title: '链接', run: a => a.wrap('[', '](url)', '链接文字') },
-  { label: '```', title: '代码块', variant: 'mono', run: a => a.insert('\n```\n\n```\n') },
-  { label: '∑', title: '行内公式', run: a => a.wrap('$', '$', 'x^2') },
-  { label: '⊞', title: '表格', run: a => a.insert('\n| 列1 | 列2 |\n| --- | --- |\n| 值 | 值 |\n') },
-  { label: '─', title: '分割线', run: a => a.insert('\n---\n') },
-  { label: '◇', title: 'Mermaid 图表', run: a => a.insert('\n```mermaid\ngraph TD\n  A[开始] --> B[结束]\n```\n') },
+  { label: <FontAwesomeIcon icon={faBold} />, title: '加粗', variant: 'bold', run: a => a.wrap('**', '**', '粗体') },
+  { label: <FontAwesomeIcon icon={faItalic} />, title: '斜体', variant: 'italic', run: a => a.wrap('*', '*', '斜体') },
+  { label: <FontAwesomeIcon icon={faStrikethrough} />, title: '删除线', run: a => a.wrap('~~', '~~', '删除线') },
+  { label: <FontAwesomeIcon icon={faCode} />, title: '行内代码', variant: 'mono', run: a => a.wrap('`', '`', 'code') },
+  { label: <FontAwesomeIcon icon={faHeading} />, title: '标题递增', run: a => a.toggleHeading() },
+  { label: <FontAwesomeIcon icon={faQuoteLeft} />, title: '引用', run: a => a.insert('\n> ') },
+  { label: <FontAwesomeIcon icon={faListUl} />, title: '无序列表', run: a => a.insert('\n- ') },
+  { label: <FontAwesomeIcon icon={faListOl} />, title: '有序列表', run: a => a.insert('\n1. ') },
+  { label: <FontAwesomeIcon icon={faLink} />, title: '链接', run: a => a.wrap('[', '](url)', '链接文字') },
+  { label: <FontAwesomeIcon icon={faCodeBranch} />, title: '代码块', variant: 'mono', run: a => a.insert('\n```\n\n```\n') },
+  { label: <FontAwesomeIcon icon={faSquareRootVariable} />, title: '行内公式', run: a => a.wrap('$', '$', 'x^2') },
+  { label: <FontAwesomeIcon icon={faTable} />, title: '表格', run: a => a.insert('\n| 列1 | 列2 |\n| --- | --- |\n| 值 | 值 |\n') },
+  { label: <FontAwesomeIcon icon={faMinus} />, title: '分割线', run: a => a.insert('\n---\n') },
+  { label: <FontAwesomeIcon icon={faShareNodes} />, title: 'Mermaid 图表', run: a => a.insert('\n```mermaid\ngraph TD\n  A[开始] --> B[结束]\n```\n') },
 ]
 
 const GROUPS = Array.from(new Set(LATEX_SYMBOLS.map(s => s.group)))
@@ -77,6 +83,7 @@ export function MarkdownToolbar({ api }: Props) {
             type="button"
             className={btnClass(a)}
             title={a.title}
+            aria-label={a.title}
             onMouseDown={preventBlur}
             onTouchStart={preventBlur}
             onClick={() => safeRun(a.run)}
@@ -151,6 +158,7 @@ export function KeypadToolbar({ api }: Props) {
           className={`toolbar__btn ${showSymbols ? 'is-active' : ''}`} 
           onPointerDown={preventBlur} 
           onClick={() => setShowSymbols(v => !v)}
+          title="特殊字符"
         >
           #+
         </button>

@@ -197,24 +197,38 @@ export async function listImages(cfg: RepoConfig): Promise<ImageItem[]> {
     .sort((a, b) => a.path.localeCompare(b.path))
 }
 
-export async function fetchHexoRoot(cfg: RepoConfig): Promise<string> {
+export async function fetchHexoConfig(cfg: RepoConfig): Promise<{ root: string, postsPath: string, imageDir: string }> {
+  const defaults = { root: '/', postsPath: 'source/_posts', imageDir: 'source/images' }
   try {
     const url = `${API}/repos/${cfg.owner}/${cfg.repo}/contents/_config.yml?ref=${cfg.branch}`
     const res = await fetch(url, { headers: headers(cfg.token) })
-    if (!res.ok) return '/'
+    if (!res.ok) return defaults
     const data = await res.json()
     const content = b64Decode(data.content)
     
-    // 简单的正则提取，避免引入额外的 yaml 解析库
-    const match = content.match(/^root:\s*['"]?([^'"\r\n]+)['"]?/m)
-    if (match && match[1]) {
-      let root = match[1].trim()
+    // 提取 root
+    let root = '/'
+    const rootMatch = content.match(/^root:\s*['"]?([^'"\r\n]+)['"]?/m)
+    if (rootMatch && rootMatch[1]) {
+      root = rootMatch[1].trim()
       if (!root.endsWith('/')) root += '/'
       if (!root.startsWith('/')) root = '/' + root
-      return root
+    }
+
+    // 提取 source_dir
+    let sourceDir = 'source'
+    const sourceMatch = content.match(/^source_dir:\s*['"]?([^'"\r\n]+)['"]?/m)
+    if (sourceMatch && sourceMatch[1]) {
+      sourceDir = sourceMatch[1].trim()
+    }
+
+    return {
+      root,
+      postsPath: `${sourceDir}/_posts`,
+      imageDir: `${sourceDir}/images`
     }
   } catch (e) {
     console.error('读取 _config.yml 失败', e)
+    return defaults
   }
-  return '/'
 }

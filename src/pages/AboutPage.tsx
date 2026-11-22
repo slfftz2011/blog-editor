@@ -1,6 +1,16 @@
 import { useState } from 'react'
+import MarkdownIt from 'markdown-it'
 import { openExternal } from '../lib/external'
 import { checkUpdate, UpdateInfo } from '../lib/updater'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowLeft, faCodeBranch, faHistory, faCloudArrowDown } from '@fortawesome/free-solid-svg-icons'
+
+// 初始化一个专门用于渲染 Release Notes 的轻量 markdown 实例
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  breaks: true,
+})
 
 interface Props {
   onBack: () => void
@@ -18,7 +28,9 @@ export default function AboutPage({ onBack }: Props) {
     setMessage(null)
     setUpdate(null)
     try {
-      const info = await checkUpdate(__APP_VERSION__)
+      // 强转去掉 'v' 前缀，确保和 GitHub 对比一致
+      const current = __APP_VERSION__.replace(/^v/, '')
+      const info = await checkUpdate(current)
       if (info) setUpdate(info)
       else setMessage('已是最新版本')
     } catch (e: any) {
@@ -31,9 +43,11 @@ export default function AboutPage({ onBack }: Props) {
   return (
     <div className="page">
       <div className="content-col">
-        <header className="page-header--back">
-          <h1 className="page-title">关于</h1>
-          <button className="btn btn--ghost" onClick={onBack}>返回</button>
+        <header className="page-header page-header--back">
+          <button className="btn btn--icon btn--ghost" onClick={onBack} aria-label="返回">
+            <FontAwesomeIcon icon={faArrowLeft} />
+          </button>
+          <h1 className="page-title" style={{ flex: 1 }}>关于</h1>
         </header>
 
         <div className="card">
@@ -63,13 +77,13 @@ export default function AboutPage({ onBack }: Props) {
               className="btn btn--outline"
               onClick={() => openExternal('https://github.com/slfftz2011/blog-editor')}
             >
-              源代码
+              <FontAwesomeIcon icon={faCodeBranch} style={{ marginRight: 6 }} /> 源代码
             </button>
             <button
               className="btn btn--outline"
               onClick={() => openExternal('https://github.com/slfftz2011/blog-editor/releases')}
             >
-              版本历史
+              <FontAwesomeIcon icon={faHistory} style={{ marginRight: 6 }} /> 版本历史
             </button>
           </div>
 
@@ -91,11 +105,17 @@ export default function AboutPage({ onBack }: Props) {
               <div className="update-panel__meta">
                 发布于 {new Date(update.publishedAt).toLocaleString()}
               </div>
-              {update.notes && <pre className="code-block">{update.notes}</pre>}
+              {update.notes && (
+                <div 
+                  className="markdown-body code-block" 
+                  style={{ padding: 12, maxHeight: 200, overflowY: 'auto' }}
+                  dangerouslySetInnerHTML={{ __html: md.render(update.notes) }} 
+                />
+              )}
               <div className="update-panel__actions">
                 {update.apkUrl && (
                   <button className="btn btn--primary" onClick={() => openExternal(update.apkUrl!)}>
-                    下载 APK
+                    <FontAwesomeIcon icon={faCloudArrowDown} style={{ marginRight: 6 }} /> 下载 APK
                   </button>
                 )}
                 <button className="btn btn--outline" onClick={() => openExternal(update.url)}>

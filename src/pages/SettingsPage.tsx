@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import type { RepoConfig } from '../types'
 import { saveConfig, defaultConfig } from '../lib/storage'
-import { testConnection, fetchHexoRoot } from '../lib/github'
+import { testConnection, fetchHexoConfig } from '../lib/github'
 import { useTheme } from '../lib/theme'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBookOpen } from '@fortawesome/free-solid-svg-icons'
+import { faBookOpen, faBolt } from '@fortawesome/free-solid-svg-icons'
 
 interface Props {
   initial: RepoConfig | null
@@ -43,9 +43,9 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
     setFetchingConfig(true)
     setResult(null)
     try {
-      const root = await fetchHexoRoot(cfg)
-      setCfg(prev => ({ ...prev, root }))
-      setResult({ ok: true, msg: `成功读取配置，Root 路径为: ${root}` })
+      const { root, postsPath, imageDir } = await fetchHexoConfig(cfg)
+      setCfg(prev => ({ ...prev, root, postsPath, imageDir }))
+      setResult({ ok: true, msg: `配置读取成功，Root 路径为: ${root}` })
     } catch (e: any) {
       setResult({ ok: false, msg: `读取失败：${e.message}` })
     } finally {
@@ -67,9 +67,11 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
       <div className="content-col">
         <header className="settings-header">
           <h1 className="settings-title">仓库配置</h1>
-          <button className="btn btn--ghost" onClick={onHelp}>
-            <FontAwesomeIcon icon={faBookOpen} style={{ marginRight: 6 }} /> 使用教程
-          </button>
+          {onHelp && (
+            <button className="btn btn--ghost" onClick={onHelp}>
+              <FontAwesomeIcon icon={faBookOpen} style={{ marginRight: 6 }} /> 使用教程
+            </button>
+          )}
         </header>
 
         {/* 外观 */}
@@ -121,7 +123,8 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp }: Pro
 
         <div style={{ marginBottom: 'var(--space-4)' }}>
           <button className="btn btn--primary" onClick={handleAutoFetch} disabled={fetchingConfig} style={{ width: '100%' }}>
-            {fetchingConfig ? '正在读取配置…' : '⚡ 自动读取 _config.yml 补全路径'}
+            <FontAwesomeIcon icon={faBolt} style={{ marginRight: 6 }} />
+            {fetchingConfig ? '正在读取配置…' : '自动读取 _config.yml 补全路径'}
           </button>
         </div>
 

@@ -9,7 +9,10 @@ import MarkdownPreview from '../components/MarkdownPreview'
 import { MarkdownToolbar, KeypadToolbar } from '../components/EditorToolbar'
 import FrontmatterModal from '../components/FrontmatterModal'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSliders, faCamera, faImages, faFloppyDisk, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { 
+  faArrowLeft, faSliders, faImage, 
+  faFloppyDisk, faCamera, faImages 
+} from '@fortawesome/free-solid-svg-icons'
 
 interface Props {
   config: RepoConfig
@@ -43,6 +46,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const [showMeta, setShowMeta] = useState(false)
+  const [showImgMenu, setShowImgMenu] = useState(false)
   const [isWideScreen, setIsWideScreen] = useState(window.innerWidth >= 768)
   const [pendingImages, setPendingImages] = useState<{ id: string, base64: string }[]>([])
 
@@ -113,7 +117,6 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
     return () => clearTimeout(t)
   }, [content, path, isNew, loading])
 
-    // 在 EditorPage 内部
   function getMarkdownImagePath(filename: string) {
     const cleanRoot = config.root.endsWith('/') ? config.root.slice(0, -1) : config.root
     const cleanImgPrefix = config.imageUrlPrefix.startsWith('/') ? config.imageUrlPrefix.slice(1) : config.imageUrlPrefix
@@ -121,6 +124,7 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
   }
 
   async function handleInsertImage(source: 'camera' | 'gallery') {
+    setShowImgMenu(false) // 关闭菜单
     setError(null)
     setUploading(true)
     try {
@@ -131,11 +135,8 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
       }
       
       const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      
-      // 1. 将图片加入暂存队列（等待点击保存时再上传）
       setPendingImages(prev => [...prev, { id, base64 }])
       
-      // 2. 生成正确的 Markdown 路径并插入
       const imageUrl = getMarkdownImagePath(`${id}.jpg`)
       const markdown = `![image](${imageUrl})`
       
@@ -189,22 +190,44 @@ export default function EditorPage({ config, path, isNew, onBack, onSaved }: Pro
 
   return (
     <div className="editor-shell">
-      <button className="btn btn--ghost" onClick={onBack}>
-        <FontAwesomeIcon icon={faArrowLeft} />
-      </button>
-      ...
-      <button className="btn btn--outline" onClick={() => setShowMeta(true)}>
-        <FontAwesomeIcon icon={faSliders} /> 属性
-      </button>
-      <button className="btn btn--outline" onClick={() => handleInsertImage('camera')} disabled={uploading}>
-        <FontAwesomeIcon icon={faCamera} /> {uploading ? '处理中…' : '拍照'}
-      </button>
-      <button className="btn btn--outline" onClick={() => handleInsertImage('gallery')} disabled={uploading}>
-        <FontAwesomeIcon icon={faImages} /> 相册
-      </button>
-      <button className="btn btn--primary" onClick={handleSave} disabled={saving}>
-        <FontAwesomeIcon icon={faFloppyDisk} /> {saving ? '保存中…' : '保存'}
-      </button>
+      {/* 👇 修复：包裹在 editor-header 里，防止按钮独占一行 */}
+      <div className="editor-header">
+        <button className="btn btn--icon btn--ghost" onClick={onBack} title="返回">
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
+        
+        <span className="editor-path">{path}</span>
+        
+        <button className="btn btn--icon btn--outline" onClick={() => setShowMeta(true)} title="属性">
+          <FontAwesomeIcon icon={faSliders} />
+        </button>
+        
+        {/* 合并的图片入口 */}
+        <div style={{ position: 'relative', flex: '0 0 auto' }}>
+          <button className="btn btn--icon btn--outline" onClick={() => setShowImgMenu(!showImgMenu)} disabled={uploading} title="插入图片">
+            <FontAwesomeIcon icon={faImage} />
+          </button>
+          {showImgMenu && (
+            <div style={{
+              position: 'absolute', top: '100%', right: 0, marginTop: 4,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-md)',
+              zIndex: 10, display: 'flex', flexDirection: 'column', minWidth: 120
+            }}>
+              <button className="btn btn--ghost" onClick={() => handleInsertImage('camera')} style={{ padding: '8px 12px', justifyContent: 'flex-start' }}>
+                <FontAwesomeIcon icon={faCamera} style={{ marginRight: 8 }} /> 拍照
+              </button>
+              <button className="btn btn--ghost" onClick={() => handleInsertImage('gallery')} style={{ padding: '8px 12px', justifyContent: 'flex-start' }}>
+                <FontAwesomeIcon icon={faImages} style={{ marginRight: 8 }} /> 相册
+              </button>
+            </div>
+          )}
+        </div>
+
+        <button className="btn btn--icon btn--primary" onClick={handleSave} disabled={saving} title="保存">
+          <FontAwesomeIcon icon={faFloppyDisk} />
+        </button>
+      </div>
 
       {draftPrompt && (
         <div className="draft-prompt">

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { RepoConfig } from '../types'
 import { listImages, deleteFile, ImageItem } from '../lib/github'
 import { useToast } from '../lib/toast'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faFolder, faXmark, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 
 interface Props {
   config: RepoConfig
@@ -25,18 +27,19 @@ export default function ImageListPage({ config, onBack }: Props) {
     return () => { cancelled = true }
   }, [config])
 
-  // 1. 处理缩略图的代理加载（解决 raw 访问慢/失败）
+  // 安全容错的代理
   function getProxyUrl(url: string) {
-    return url.replace('https://raw.githubusercontent.com', 'https://ghproxy.net/https://raw.githubusercontent.com')
+    if (url.includes('raw.githubusercontent.com')) {
+      return url.replace('https://raw.githubusercontent.com', 'https://ghproxy.net/https://raw.githubusercontent.com')
+    }
+    return url
   }
 
-  // 2. 同步最新的路径拼接逻辑（使用 config.root）
   function getMarkdownLink(img: ImageItem) {
     const cleanRoot = config.root.endsWith('/') ? config.root.slice(0, -1) : config.root
     const cleanImgPrefix = config.imageUrlPrefix.startsWith('/') ? config.imageUrlPrefix.slice(1) : config.imageUrlPrefix
     const relPath = img.path.substring(config.imageDir.replace(/\/+$/, '').length)
     
-    // 保证路径不会出现多余的斜杠
     const finalUrl = `${cleanRoot}/${cleanImgPrefix}${relPath}`
     return `![image](${finalUrl})`
   }
@@ -75,8 +78,10 @@ export default function ImageListPage({ config, onBack }: Props) {
     <div className="page">
       <div className="content-col">
         <header className="page-header page-header--back">
+          <button className="btn btn--icon btn--ghost" onClick={onBack} aria-label="返回">
+            <FontAwesomeIcon icon={faArrowLeft} />
+          </button>
           <h1 className="page-title" style={{ flex: 1 }}>资源库</h1>
-          <button className="btn btn--ghost" onClick={onBack}>返回</button>
           <span className="badge">{images.length} 张</span>
         </header>
 
@@ -86,15 +91,18 @@ export default function ImageListPage({ config, onBack }: Props) {
 
         {Object.entries(grouped).map(([folder, imgs]) => (
           <div key={folder} style={{ marginBottom: 'var(--space-6)' }}>
-            <h3 style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)', borderBottom: '1px solid var(--border)', paddingBottom: 4 }}>
-              📁 {folder === '根目录' ? '根目录' : folder} ({imgs.length})
+            <h3 style={{ 
+              fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', 
+              marginBottom: 'var(--space-3)', borderBottom: '1px solid var(--border)', 
+              paddingBottom: 4, display: 'flex', alignItems: 'center', gap: 6
+            }}>
+              <FontAwesomeIcon icon={faFolder} /> {folder === '根目录' ? '根目录' : folder} ({imgs.length})
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 'var(--space-3)' }}>
               {imgs.map(img => (
                 <div key={img.path} style={{ position: 'relative', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div onClick={() => handleCopy(img)} title="点击复制 Markdown 链接" style={{ height: 100, background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
-                    {/* 👇 这里换成了代理 URL */}
                     <img 
                       src={getProxyUrl(img.url)} 
                       alt={img.name} 
@@ -107,7 +115,7 @@ export default function ImageListPage({ config, onBack }: Props) {
                       {img.name}
                     </span>
                     <button onClick={() => handleDelete(img)} disabled={deleting === img.path} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 2, fontSize: 12 }} title="删除图片">
-                      {deleting === img.path ? '…' : '✕'}
+                      {deleting === img.path ? '…' : <FontAwesomeIcon icon={faXmark} />}
                     </button>
                   </div>
                 </div>
