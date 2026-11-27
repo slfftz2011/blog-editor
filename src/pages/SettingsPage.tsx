@@ -4,7 +4,7 @@ import { saveConfig, defaultConfig } from '../lib/storage'
 import { testConnection, fetchHexoConfig } from '../lib/github'
 import { useTheme } from '../lib/theme'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBookOpen, faBolt } from '@fortawesome/free-solid-svg-icons'
+import { faBookOpen, faBolt, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons'
 
 interface Props {
   initial: RepoConfig | null
@@ -70,25 +70,15 @@ export default function SettingsPage({ initial, onSaved, onCancel, onHelp, onOpe
       <div className="content-col">
         <header className="settings-header">
           <h1 className="settings-title">仓库配置</h1>
-          {onHelp && (
-            <button className="btn btn--ghost" onClick={onHelp}>
-              <FontAwesomeIcon icon={faBookOpen} style={{ marginRight: 6 }} /> 使用教程
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <button className="btn btn--outline" onClick={onOpenCreateRepo}>
+              <FontAwesomeIcon icon={faWandMagicSparkles} style={{ marginRight: 6 }} /> 一键建站
             </button>
-          )}
+            <button className="btn btn--ghost" onClick={onHelp}>
+              <FontAwesomeIcon icon={faBookOpen} style={{ marginRight: 6 }} /> 帮助
+            </button>
+          </div>
         </header>
-
-        <div style={{
-          marginBottom: 'var(--space-5)', padding: 'var(--space-4)',
-          background: 'var(--accent-soft)', borderRadius: 'var(--radius)',
-        }}>
-          <h3 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-base)' }}>还没有仓库？</h3>
-          <p className="text-secondary text-sm" style={{ margin: '0 0 var(--space-3)' }}>
-            一键创建标准的 Hexo 博客，自动配置分支与工作流。
-          </p>
-          <button className="btn btn--primary" onClick={onOpenCreateRepo}>
-            一键建站
-          </button>
-        </div>
 
         {/* 外观 */}
         <section className="settings-group">

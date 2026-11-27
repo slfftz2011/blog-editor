@@ -62,23 +62,23 @@ export default function App() {
     )
   }
 
-  if (page.name === 'create-repo' && config) {
-    return (
-      <div className="animate-fade-in" key="create-repo">
-        <CreateRepoPage
-          config={config}
-          onBack={() => setPage({ name: 'settings' })}
-          onCreated={newRepoName => {
-            const newConfig = { ...config, repo: newRepoName }
-            setConfig(newConfig)
-            saveConfig(newConfig)
-            setPage({ name: 'files' })
-            setRefreshKey(k => k + 1)
-          }}
-        />
-      </div>
-    )
-  }
+    // 在 App.tsx 中：
+    if (page.name === 'create-repo') {
+      return (
+        <div className="animate-fade-in" key="create-repo">
+          <CreateRepoPage
+            initial={config}
+            onBack={() => setPage(config ? { name: 'settings' } : { name: 'settings' })}
+            onCreated={newConfig => {
+              setConfig(newConfig)
+              saveConfig(newConfig)
+              setPage({ name: 'files' })
+              setRefreshKey(k => k + 1)
+            }}
+          />
+        </div>
+      )
+    }
 
   if (!config || page.name === 'settings') {
     return (
