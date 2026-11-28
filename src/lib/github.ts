@@ -263,7 +263,7 @@ export async function installTheme(
   theme: ThemeOption,
 ): Promise<void> {
   const repoCfg = { ...cfg, repo: repoName }
-  const branch = 'dev' // 模板的默认分支
+  const branch = 'dev' // 目标分支
 
   // 1. 获取当前分支的 head commit
   const refRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/ref/heads/${branch}`, { headers: headers(cfg.token) })
@@ -279,6 +279,24 @@ export async function installTheme(
 
   const newTree: any[] = []
 
+  // 👇 关键新增：获取完整的递归树，清理旧的主题文件
+  const fullTreeRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/trees/${baseTreeSha}?recursive=1`, { headers: headers(cfg.token) })
+  const fullTreeData = await fullTreeRes.json()
+  const oldFiles = fullTreeData.tree || []
+  
+  const targetPrefix = `themes/${theme.id}/`
+  const toDelete = oldFiles.filter((f: any) => f.path.startsWith(targetPrefix))
+  
+  toDelete.forEach((f: any) => {
+    // 将旧文件加入新树，sha 设为 null 表示删除
+    newTree.push({
+      path: f.path,
+      mode: f.mode,
+      type: f.type,
+      sha: null 
+    })
+  })
+
   // 3. 准备新的 _config.yml 改动
   const { content: configContent } = await readFile(repoCfg, '_config.yml')
   const newConfigContent = configContent.replace(/^theme:\s*.*$/m, `theme: ${theme.id}`)
@@ -291,16 +309,16 @@ export async function installTheme(
   const configBlob = await configBlobRes.json()
   newTree.push({ path: '_config.yml', mode: '100644', type: 'blob', sha: configBlob.sha })
 
-  // 4. 下载主题文件并在目标仓库创建 blob（限制并发数为 10，防止被 GitHub 封号）
+  // 4. 下载新主题文件并在目标仓库创建 blob
   if (theme.repo) {
     const themeBranch = theme.branch || 'master'
-    const treeRes = await fetch(
+    const themeTreeRes = await fetch(
       `https://api.github.com/repos/${theme.repo}/git/trees/${themeBranch}?recursive=1`,
       { headers: headers(cfg.token) },
     )
-    await handle(treeRes)
-    const themeTree = (await treeRes.json()).tree as any[]
-    const files = themeTree.filter(e => e.type === 'blob' && !e.path.startsWith('.'))
+    await handle(themeTreeRes)
+    const themeTreeData = (await themeTreeRes.json()).tree as any[]
+    const files = themeTreeData.filter(e => e.type === 'blob' && !e.path.startsWith('.'))
 
     // 并发下载与上传
     for (let i = 0; i < files.length; i += 10) {
@@ -308,6 +326,7 @@ export async function installTheme(
       await Promise.all(
         chunk.map(async (file: any) => {
           const blobRes = await fetch(`https://api.github.com/repos/${theme.repo}/git/blobs/${file.sha}`, { headers: headers(cfg.token) })
+          await handle(blobRes)
           const blob = await blobRes.json()
           
           const createBlobRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/blobs`, {
@@ -343,7 +362,7 @@ export async function installTheme(
     method: 'POST',
     headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      message: `feat: 初始化主题 ${theme.id}`,
+      message: `feat: 覆盖安装主题 ${theme.id}`,
       tree: newTreeObj.sha,
       parents: [latestCommitSha],
     }),
@@ -358,12 +377,7 @@ export async function installTheme(
     body: JSON.stringify({ sha: newCommit.sha }),
   })
   await handle(updateRefRes)
-  
-  // 8. 生成独立主题配置文件 (如果有)
-  if (theme.configFile) {
-  }
 }
-
 export async function setupRepoAfterCreate(
   cfg: RepoConfig,
   repoName: string,
