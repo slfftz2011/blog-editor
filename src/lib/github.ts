@@ -269,28 +269,47 @@ export async function installTheme(
   const newContent = content.replace(/^theme:\s*.*$/m, `theme: ${theme.id}`)
   await writeFile(repoCfg, configPath, newContent, `chore: switch theme to ${theme.id}`, sha)
 
-  // 2. 下载主题文件并上传到 themes/<themeId>/
+  // 2. 下载主题文件并上传
   if (theme.repo) {
+    const branch = theme.branch || 'master'
     const treeRes = await fetch(
-      `https://api.github.com/repos/${theme.repo}/git/trees/main?recursive=1`,
+      `https://api.github.com/repos/${theme.repo}/git/trees/${branch}?recursive=1`,
       { headers: headers(cfg.token) },
     )
-    if (!treeRes.ok) throw new Error(`无法获取主题 ${theme.name} 的文件`)
+    
+    if (!treeRes.ok) {
+      if (treeRes.status === 404) {
+        throw new Error(`无法获取主题 ${theme.name}，分支 ${branch} 不存在`)
+      }
+      if (treeRes.status === 403) {
+        throw new Error(`GitHub API 触发限流，请稍后再试，或者减少主题文件大小`)
+      }
+      throw new Error(`获取主题失败: HTTP ${treeRes.status}`)
+    }
+    
     const tree = (await treeRes.json()).tree as any[]
+    // 过滤出文件，排除隐藏文件
     const files = tree.filter((e: any) => e.type === 'blob' && !e.path.startsWith('.'))
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
       const blobRes = await fetch(
         `https://api.github.com/repos/${theme.repo}/git/blobs/${file.sha}`,
         { headers: headers(cfg.token) },
       )
+      
+      if (!blobRes.ok) throw new Error(`下载文件 ${file.path} 失败`)
+      
       const blob = await blobRes.json()
+      
       await uploadBinaryFile(
         repoCfg,
         `themes/${theme.id}/${file.path}`,
         blob.content,
         `feat: install ${theme.id} - ${file.path}`,
       )
+
+      await new Promise((r) => setTimeout(r, 150))
     }
   }
 
