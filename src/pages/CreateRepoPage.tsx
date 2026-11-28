@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { RepoConfig } from '../types'
-import { createBlogFromTemplate, installTheme } from '../lib/github'
+import { createBlogFromTemplate, installTheme, setupRepoAfterCreate, waitForRepoReady } from '../lib/github'
 import { THEME_MARKET, ThemeOption } from '../data/themes'
 import { useToast } from '../lib/toast'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -54,6 +54,14 @@ export default function CreateRepoPage({ initial, onBack, onCreated }: Props) {
 
       toast.show('正在创建仓库…', 'info')
       await createBlogFromTemplate(tmpConfig, safeName)
+
+      // 👇 关键新增：等待仓库底层的分支同步就绪
+      toast.show('等待仓库初始化…', 'info')
+      await waitForRepoReady(tmpConfig, safeName)
+
+      // 👇 关键新增：自动配置 Actions 和 Pages
+      toast.show('正在配置 Pages 与权限…', 'info')
+      await setupRepoAfterCreate(tmpConfig, safeName)
 
       if (selectedTheme.id !== 'landscape') {
         toast.show(`正在安装主题 ${selectedTheme.name}…`, 'info')

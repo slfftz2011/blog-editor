@@ -300,3 +300,41 @@ export async function installTheme(
     await writeFile(repoCfg, theme.configFile, defaultConfig, `feat: generate ${theme.configFile}`)
   }
 }
+
+export async function setupRepoAfterCreate(
+  cfg: RepoConfig,
+  repoName: string,
+): Promise<void> {
+  const repoCfg = { ...cfg, repo: repoName }
+
+  // 1. 设置 Actions 权限为 Read and write（允许 workflow 自动推送到 main 分支）
+  await fetch(`${API}/repos/${cfg.owner}/${repoName}/actions/permissions/workflow`, {
+    method: 'PUT',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ default_workflow_permissions: 'write' }),
+  })
+
+  // 2. 开启 GitHub Pages（从 main 分支的根目录部署）
+  await fetch(`${API}/repos/${cfg.owner}/${repoName}/pages`, {
+    method: 'POST',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      source: {
+        branch: 'main',
+        path: '/',
+      },
+    }),
+  }).catch((e) => {
+    console.warn('开启 Pages 失败，可能需要用户在后台手动开启', e)
+  })
+}
+
+// 为了保证在刚创建仓库时，分支不报 404，我们需要等待分支生成
+export async function waitForRepoReady(cfg: RepoConfig, repoName: string): Promise<void> {
+  for (let i = 0; i < 5; i++) {
+    const url = `${API}/repos/${cfg.owner}/${repoName}/git/trees/${cfg.branch || 'dev'}`
+    const res = await fetch(url, { headers: headers(cfg.token) })
+    if (res.ok) return
+    await new Promise((r) => setTimeout(r, 1500)) // 每次等 1.5 秒
+  }
+}
