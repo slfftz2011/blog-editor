@@ -4,8 +4,9 @@ import type { ThemeOption } from '../data/themes'
 const API = 'https://api.github.com'
 
 function headers(token: string): Record<string, string> {
+  const safeToken = token.replace(/[^\x20-\x7E]/g, '').trim()
   return {
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${safeToken}`,
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
   }
@@ -262,61 +263,104 @@ export async function installTheme(
   theme: ThemeOption,
 ): Promise<void> {
   const repoCfg = { ...cfg, repo: repoName }
-  const configPath = '_config.yml'
+  const branch = 'dev' // 模板的默认分支
 
-  // 1. 修改 _config.yml 的 theme 字段
-  const { content, sha } = await readFile(repoCfg, configPath)
-  const newContent = content.replace(/^theme:\s*.*$/m, `theme: ${theme.id}`)
-  await writeFile(repoCfg, configPath, newContent, `chore: switch theme to ${theme.id}`, sha)
+  // 1. 获取当前分支的 head commit
+  const refRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/ref/heads/${branch}`, { headers: headers(cfg.token) })
+  await handle(refRes)
+  const ref = await refRes.json()
+  const latestCommitSha = ref.object.sha
 
-  // 2. 下载主题文件并上传
+  // 2. 获取当前 commit 的 tree
+  const commitRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/commits/${latestCommitSha}`, { headers: headers(cfg.token) })
+  await handle(commitRes)
+  const commit = await commitRes.json()
+  const baseTreeSha = commit.tree.sha
+
+  const newTree: any[] = []
+
+  // 3. 准备新的 _config.yml 改动
+  const { content: configContent } = await readFile(repoCfg, '_config.yml')
+  const newConfigContent = configContent.replace(/^theme:\s*.*$/m, `theme: ${theme.id}`)
+  const configBlobRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/blobs`, {
+    method: 'POST',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: newConfigContent, encoding: 'utf-8' }),
+  })
+  await handle(configBlobRes)
+  const configBlob = await configBlobRes.json()
+  newTree.push({ path: '_config.yml', mode: '100644', type: 'blob', sha: configBlob.sha })
+
+  // 4. 下载主题文件并在目标仓库创建 blob（限制并发数为 10，防止被 GitHub 封号）
   if (theme.repo) {
-    const branch = theme.branch || 'master'
+    const themeBranch = theme.branch || 'master'
     const treeRes = await fetch(
-      `https://api.github.com/repos/${theme.repo}/git/trees/${branch}?recursive=1`,
+      `https://api.github.com/repos/${theme.repo}/git/trees/${themeBranch}?recursive=1`,
       { headers: headers(cfg.token) },
     )
-    
-    if (!treeRes.ok) {
-      if (treeRes.status === 404) {
-        throw new Error(`无法获取主题 ${theme.name}，分支 ${branch} 不存在`)
-      }
-      if (treeRes.status === 403) {
-        throw new Error(`GitHub API 触发限流，请稍后再试，或者减少主题文件大小`)
-      }
-      throw new Error(`获取主题失败: HTTP ${treeRes.status}`)
-    }
-    
-    const tree = (await treeRes.json()).tree as any[]
-    // 过滤出文件，排除隐藏文件
-    const files = tree.filter((e: any) => e.type === 'blob' && !e.path.startsWith('.'))
+    await handle(treeRes)
+    const themeTree = (await treeRes.json()).tree as any[]
+    const files = themeTree.filter(e => e.type === 'blob' && !e.path.startsWith('.'))
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const blobRes = await fetch(
-        `https://api.github.com/repos/${theme.repo}/git/blobs/${file.sha}`,
-        { headers: headers(cfg.token) },
+    // 并发下载与上传
+    for (let i = 0; i < files.length; i += 10) {
+      const chunk = files.slice(i, i + 10)
+      await Promise.all(
+        chunk.map(async (file: any) => {
+          const blobRes = await fetch(`https://api.github.com/repos/${theme.repo}/git/blobs/${file.sha}`, { headers: headers(cfg.token) })
+          const blob = await blobRes.json()
+          
+          const createBlobRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/blobs`, {
+            method: 'POST',
+            headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: blob.content, encoding: 'base64' }),
+          })
+          await handle(createBlobRes)
+          const newBlob = await createBlobRes.json()
+          
+          newTree.push({
+            path: `themes/${theme.id}/${file.path}`,
+            mode: '100644',
+            type: 'blob',
+            sha: newBlob.sha,
+          })
+        })
       )
-      
-      if (!blobRes.ok) throw new Error(`下载文件 ${file.path} 失败`)
-      
-      const blob = await blobRes.json()
-      
-      await uploadBinaryFile(
-        repoCfg,
-        `themes/${theme.id}/${file.path}`,
-        blob.content,
-        `feat: install ${theme.id} - ${file.path}`,
-      )
-
-      await new Promise((r) => setTimeout(r, 150))
     }
   }
 
-  // 3. 生成主题独立配置文件（如果主题支持）
+  // 5. 创建新的 Tree
+  const createTreeRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/trees`, {
+    method: 'POST',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ base_tree: baseTreeSha, tree: newTree }),
+  })
+  await handle(createTreeRes)
+  const newTreeObj = await createTreeRes.json()
+
+  // 6. 创建 Commit
+  const createCommitRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/commits`, {
+    method: 'POST',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: `feat: 初始化主题 ${theme.id}`,
+      tree: newTreeObj.sha,
+      parents: [latestCommitSha],
+    }),
+  })
+  await handle(createCommitRes)
+  const newCommit = await createCommitRes.json()
+
+  // 7. 更新分支的 Head 指向新的 Commit
+  const updateRefRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/refs/heads/${branch}`, {
+    method: 'PATCH',
+    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sha: newCommit.sha }),
+  })
+  await handle(updateRefRes)
+  
+  // 8. 生成独立主题配置文件 (如果有)
   if (theme.configFile) {
-    const defaultConfig = `# ${theme.name} Configuration\n# Generated by BlogEditor\n`
-    await writeFile(repoCfg, theme.configFile, defaultConfig, `feat: generate ${theme.configFile}`)
   }
 }
 
