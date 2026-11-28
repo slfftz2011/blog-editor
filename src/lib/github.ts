@@ -279,12 +279,12 @@ export async function installTheme(
 
   const newTree: any[] = []
 
-  // 👇 关键新增：获取完整的递归树，清理旧的主题文件
   const fullTreeRes = await fetch(`${API}/repos/${cfg.owner}/${repoName}/git/trees/${baseTreeSha}?recursive=1`, { headers: headers(cfg.token) })
   const fullTreeData = await fullTreeRes.json()
   const oldFiles = fullTreeData.tree || []
   
-  const targetPrefix = `themes/${theme.id}/`
+  // 👇 把原来的 `themes/${theme.id}/` 改成 `themes/`，全量清理
+  const targetPrefix = `themes/`
   const toDelete = oldFiles.filter((f: any) => f.path.startsWith(targetPrefix))
   
   toDelete.forEach((f: any) => {
