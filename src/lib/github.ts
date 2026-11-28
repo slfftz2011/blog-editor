@@ -368,28 +368,39 @@ export async function setupRepoAfterCreate(
   cfg: RepoConfig,
   repoName: string,
 ): Promise<void> {
-  const repoCfg = { ...cfg, repo: repoName }
-
-  // 1. 设置 Actions 权限为 Read and write（允许 workflow 自动推送到 main 分支）
+  // 1. 设置 Actions 权限为 Read and write
   await fetch(`${API}/repos/${cfg.owner}/${repoName}/actions/permissions/workflow`, {
     method: 'PUT',
     headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
     body: JSON.stringify({ default_workflow_permissions: 'write' }),
   })
 
-  // 2. 开启 GitHub Pages（从 main 分支的根目录部署）
-  await fetch(`${API}/repos/${cfg.owner}/${repoName}/pages`, {
-    method: 'POST',
-    headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      source: {
-        branch: 'main',
-        path: '/',
-      },
-    }),
-  }).catch((e) => {
-    console.warn('开启 Pages 失败，可能需要用户在后台手动开启', e)
+  // 2. 配置 Pages（先查再建/改，防止 422 冲突）
+  const pagesUrl = `${API}/repos/${cfg.owner}/${repoName}/pages`
+  
+  // 查询是否已有 Pages
+  const checkRes = await fetch(pagesUrl, { headers: headers(cfg.token) })
+  
+  const bodyData = JSON.stringify({
+    build_type: 'legacy',
+    source: { branch: 'main', path: '/' },
   })
+
+  if (checkRes.status === 404) {
+    // 如果没建过，则新建
+    await fetch(pagesUrl, {
+      method: 'POST',
+      headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+      body: bodyData,
+    })
+  } else if (checkRes.ok) {
+    // 如果已经有了，则更新（PUT 请求）
+    await fetch(pagesUrl, {
+      method: 'PUT',
+      headers: { ...headers(cfg.token), 'Content-Type': 'application/json' },
+      body: bodyData,
+    })
+  }
 }
 
 // 为了保证在刚创建仓库时，分支不报 404，我们需要等待分支生成
